@@ -860,8 +860,32 @@ let PLOG=[{t:new Date(2026,9,8,14,20),type:'HUE',per:'Oktober 2026',n:139412,by:
 function plogCard(type){const L=PLOG.filter(x=>x.type===type).sort((a,b)=>b.t-a.t);
  return `<div class="card" style="margin-top:16px"><div class="ch"><div><h2>Riwayat ${type==='BA'?'Berita Acara':'patching '+type}</h2><p>Setiap file yang pernah dibentuk, siapa pembuatnya, dan kapan</p></div></div>${L.length?`<div class="tw" style="max-height:280px"><table class="x"><thead><tr><th>WAKTU</th><th>PERIODE</th>${type==='BA'?'<th>NOMOR BA</th>':''}<th>JUMLAH ${type==='BA'?'DATA':'BARIS'}</th><th>DIBUAT OLEH</th><th>AKSI</th></tr></thead><tbody>${L.map((x,i)=>`<tr><td>${dstr(x.t)} ${x.t.toTimeString().slice(0,5)}</td><td>${esc(x.per)}</td>${type==='BA'?`<td>${esc(x.no||'—')}</td>`:''}<td class="num">${fmt(x.n)}</td><td>${esc(x.by)}</td><td><button class="link" data-pl="${PLOG.indexOf(x)}">${ic('dl')} Unduh ulang</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Belum ada riwayat.</div>'}</div>`}
 function bindPlog(){document.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{const x=PLOG[+b.dataset.pl];showCsv((x.type==='BA'?'BA_':'PATCH_'+x.type+'_')+x.per.replace(' ','_')+'.csv','PERIODE;JENIS;JUMLAH;DIBUAT_OLEH\n'+[x.per,x.type,x.n,x.by].join(';'))})}
-const FMT={hue:['NO_ID','NIK','NAMA','TGL_LAHIR','KATEGORI','SUMBER','STATUS'],iris:['ID_WATCHLIST','NAMA_LENGKAP','TEMPAT_LAHIR','TANGGAL_LAHIR','ALAMAT','JENIS_LIST','KODE_REF']};
-const FMAP={hue:['ID Subkategori','NIK','Nama','Tanggal Lahir','Subkategori','Sumber Data','Status'],iris:['ID Subkategori','Nama','Tempat Lahir','Tanggal Lahir','Alamat','Kategori (REJECTION/NEGATIVE)','Kode Dugaan']};
+const D8=d=>d?isoD(d).replace(/-/g,''):'',DMY8=d=>{const x=D8(d);return x?x.slice(6,8)+x.slice(4,6)+x.slice(0,4):''},
+ J7=d=>{if(!d)return '';const y=d.getFullYear(),n=Math.round((Date.UTC(y,d.getMonth(),d.getDate())-Date.UTC(y,0,1))/864e5)+1;return y+String(n).padStart(3,'0')},
+ DMY6=d=>{const x=D8(d);return x?x.slice(6,8)+x.slice(4,6)+x.slice(2,4):''},U=v=>v?String(v).toUpperCase():'';
+const isTerr=v=>TERR(v.subName),isRej=e=>e.cat==='Rejection List';
+const PATCH={
+ hue:[{k:'rej',l:'Rejection List',sep:'|',ext:'txt',f:(e,v)=>isRej(e),
+   cols:['No. ID','NIK','Nama','CIF','Alias Nama','Tempat Lahir','Tanggal Lahir','Alamat','Kewarganegaraan','Type','Data Source'],
+   map:['ID Subkategori','NIK','Nama','CIF','Alias','Tempat lahir','Tgl lahir (YYYYMMDD)','Alamat','Kewarganegaraan','Kode subkategori','Sumber'],
+   row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',U(v.alias),U(v.tempat),D8(v.tgl),U(v.alamat)||'-',U(e.kwn),v.sub.slice(0,3),v.src]},
+  {k:'ngv',l:'Negative List',sep:'|',ext:'txt',f:(e,v)=>!isRej(e),
+   cols:['No. ID','NIK','Nama','CIF','No. Rekening','Tanggal Lahir','Type','Tanggal Diinput','Tanggal Dilaporkan','Check Status','Data Source'],
+   map:['ID Subkategori','NIK','Nama','CIF','No. rekening','Tgl lahir (YYYYMMDD)','Kode subkategori','Tgl diinput (YYYYMMDD)','Tgl dilaporkan (YYYYMMDD)','CONFIRMED','Sumber'],
+   row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',e.rek||'',D8(v.tgl),v.sub.slice(0,3),D8(e.created),D8(v.tglLapor),'CONFIRMED',v.src]}],
+ iris:[{k:'ter',l:'DTTOT & DPPSPM',sep:'\t',ext:'txt',f:(e,v)=>isRej(e)&&isTerr(v),
+   cols:['No. ID','NIK','Nama','CIF','Alias Nama','Tempat Lahir','Tanggal Lahir (DDMMYYYY)','Alamat','Kewarganegaraan','Type','Data Source'],
+   map:['ID Subkategori','NIK','Nama','CIF','Alias','Tempat lahir','Tgl lahir (DDMMYYYY)','Alamat','Kewarganegaraan','Kode subkategori','Sumber'],
+   row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',U(v.alias),U(v.tempat),DMY8(v.tgl),U(v.alamat),U(e.kwn),v.sub.slice(0,3),v.src]},
+  {k:'scj',l:'Scammer & Judol',sep:'\t',ext:'txt',f:(e,v)=>isRej(e)&&!isTerr(v),
+   cols:['BLSCID','BLSSNO','BLNA1','BLCIFN','BLACNO','BLBIR8','BLHTYP','BLINP7','BLINP6','BLRPT7','BLRPT6','BLSTSC'],
+   map:['ID Subkategori','NIK','Nama','CIF','No. rekening','Tgl lahir (DDMMYYYY)','Kode subkategori','Tgl diinput (YYYYDDD)','Tgl diinput (DDMMYY)','Tgl dilaporkan (YYYYDDD)','Tgl dilaporkan (DDMMYY)','CONFIRMED'],
+   row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',e.rek||'',DMY8(v.tgl),v.sub.slice(0,3),J7(e.created),DMY6(e.created),J7(v.tglLapor),DMY6(v.tglLapor),'CONFIRMED']},
+  {k:'ngv',l:'Negative List',sep:'\t',ext:'txt',f:(e,v)=>!isRej(e),
+   cols:['BLNLID','BLSSNO','BLNA1','BLCIFN','BLACNO','BLBIR8','BLHTYP','BLINP7','BLINP6','BLRPT7','BLRPT6','BLSTSC','BLDTSR'],
+   map:['ID Subkategori','NIK','Nama','CIF','No. rekening','Tgl lahir (YYYYMMDD)','Kode subkategori','Tgl diinput (YYYYDDD)','Tgl diinput (DDMMYY)','Tgl dilaporkan (YYYYDDD)','Tgl dilaporkan (DDMMYY)','CONFIRMED','Sumber'],
+   row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',e.rek||'',D8(v.tgl),v.sub.slice(0,3),J7(e.created),DMY6(e.created),J7(v.tglLapor),DMY6(v.tglLapor),'CONFIRMED',v.src]}]};
+let pfmt={hue:'rej',iris:'ter'};
 function vUpload(){
  const aml=roleKey==='aml';
  $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Upload Watchlist</h1><p class="sub" style="margin:0">Output distribusi format baku. Distribusi bulanan sebelum tanggal 10.</p></div>
@@ -869,18 +893,22 @@ function vUpload(){
  $('#ut').onclick=e=>{const b=e.target.closest('button');if(b){upTab=b.dataset.t;vUpload()}};
  if(!aml){$('#ub').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Hanya AML yang dapat membentuk file distribusi.</b><br>Ganti role ke AML Admin untuk mencoba.</p></div>`;return}
  if(upTab==='ba'){baView();$('#ub').insertAdjacentHTML('beforeend',plogCard('BA'));bindPlog();return}
- const cols=FMT[upTab],act=ENT.filter(e=>e.status==='Active'&&e.cat!=='Delisting Akhir'),flat=act.flatMap(e=>combos(e).map(v=>({e,v})));
- const row=({e,v})=>upTab==='hue'?[v.sub,e.nik||'NULL',v.nama,isoD(v.tgl),v.subName,v.src,'ACTIVE']:[v.sub,v.nama,v.tempat||'NULL',isoD(v.tgl),v.alamat||'NULL',e.cat==='Negative List'?'NEGATIVE':'REJECTION',keyOf(e)==='Kode Dugaan'?e.key:'NULL'];
- $('#ub').innerHTML=`<div class="card"><div class="ch"><div><h2>${upTab==='hue'?'Patching HUE':'Patching IRIS'}</h2><p>Hanya record Active di Rejection List dan Negative List (Delisting Akhir tidak ikut). Tidak ada filter tambahan; urutan kolom terkunci sesuai format yang disetujui.</p></div><div class="sp"></div><span class="lock">${ic('lock')}Fixed approved format</span></div>
- ${upTab==='iris'?`<div class="alert i">${ic('db')}<span><b>DTTOT/DPPSPM: kombinasi variasi dibentuk otomatis</b>Setiap kombinasi Nama × Tanggal Lahir × Tempat Lahir × Alamat menjadi baris terpisah, dengan provenance tetap tersimpan.</span></div>`:''}
- ${gen[upTab]?`<div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cols.map((c,i)=>`<th title="Sumber: ${FMAP[upTab][i]}">${c}<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--blue2)">← ${FMAP[upTab][i]}</span></th>`).join('')}</tr></thead><tbody>${flat.slice(0,15).map((r,i)=>`<tr><td class="rn">${i+1}</td>${row(r).map(v=>v==='NULL'?'<td class="n">NULL</td>':`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-  <div class="pg"><span>${flat.length} baris dihasilkan · ${dstr(today)} · as-of ${dstr(today)}</span><div class="pb"><button class="btn" id="csv">${ic('dl')}CSV</button><button class="btn" id="xls">${ic('dl')}Excel</button></div></div>`
-  :`<div class="empty">${ic('file')}<p>Belum ada file yang dibentuk untuk periode ini.</p><button class="btn pri" id="gn">Generate ${upTab.toUpperCase()}</button></div>`}</div>`;
+ const act=ENT.filter(e=>e.status==='Active'&&e.cat!=='Delisting Akhir'),all=act.flatMap(e=>combos(e).map(v=>({e,v})));
+ const F=PATCH[upTab],cur=F.find(x=>x.k===pfmt[upTab])||F[0],rowsOf=f=>all.filter(({e,v})=>f.f(e,v)),R=rowsOf(cur),total=all.length;
+ const fname=f=>`PATCH_${upTab.toUpperCase()}_${f.l.replace(/\W+/g,'_').toUpperCase()}_202611.${f.ext}`;
+ $('#ub').innerHTML=`<div class="card"><div class="ch"><div><h2>${upTab==='hue'?'Patching HUE':'Patching IRIS'}</h2><p>${F.length} format file · data Active di Rejection List dan Negative List · as-of ${dstr(today)}</p></div><div class="sp"></div><span class="lock">${ic('lock')}Format baku</span></div>
+ ${gen[upTab]?`<div class="bar2"><div class="tabs" id="pft">${F.map(f=>`<button data-f="${f.k}" class="${f===cur?'on':''}">${f.l} <small style="opacity:.7">${fmt(rowsOf(f).length)}</small></button>`).join('')}</div><div style="flex:1"></div><span style="font-size:12px;color:var(--mute)">${esc(fname(cur))} · pemisah ${cur.sep==='|'?'pipe ( | )':'tab'}</span></div>
+  <div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cur.cols.map((c,i)=>`<th style="text-transform:none">${esc(c)}<br><span style="font-weight:400;letter-spacing:0;color:var(--blue2)">← ${esc(cur.map[i])}</span></th>`).join('')}</tr></thead><tbody>${R.slice(0,20).map(({e,v},i)=>`<tr><td class="rn">${i+1}</td>${cur.row(e,v).map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+  <div class="pg"><span>${fmt(R.length)} baris di file ini · ${fmt(total)} baris total ${upTab.toUpperCase()} (${F.length} file)</span><div class="pb"><button class="btn" id="dl1">${ic('dl')}Unduh file ini</button><button class="btn pri" id="dla">${ic('dl')}Unduh semua (${F.length})</button></div></div>`
+  :`<div class="empty">${ic('file')}<p>Belum ada file yang dibentuk untuk periode ini.<br><small>${F.map(f=>f.l).join(' · ')}</small></p><button class="btn pri" id="gn">Generate ${upTab.toUpperCase()}</button></div>`}</div>`;
  $('#ub').insertAdjacentHTML('beforeend',plogCard(upTab.toUpperCase()));bindPlog();
- const gn=$('#gn');if(gn)gn.onclick=()=>confirmDlg('Generate patching '+upTab.toUpperCase()+'?',`Membentuk file dari <b>${fmt(flat.length)} baris</b> data Active per ${dstr(today)}. File akan tercatat di riwayat patching.`,'Generate',()=>busy($('#gn'),'Membentuk file…',1100,()=>{gen[upTab]=1;PLOG.push({t:new Date(),type:upTab.toUpperCase(),per:'November 2026',n:flat.length,by:ROLE.name});log('Generate '+upTab.toUpperCase(),'Distribusi',flat.length+' baris','Berhasil');toast('✓ File '+upTab.toUpperCase()+' siap');vUpload()}));
- const csv=()=>showCsv('PATCH_'+upTab.toUpperCase()+'_202611.csv',[cols.join('|'),...flat.map(r=>row(r).join('|'))].join('\n'));
- const c1=$('#csv');if(c1){c1.onclick=csv;$('#xls').onclick=csv}
+ const pft=$('#pft');if(pft)pft.onclick=ev=>{const b=ev.target.closest('button');if(b){pfmt[upTab]=b.dataset.f;vUpload()}};
+ const gn=$('#gn');if(gn)gn.onclick=()=>confirmDlg('Generate patching '+upTab.toUpperCase()+'?',`Membentuk ${F.length} file (${F.map(f=>f.l).join(', ')}) dari <b>${fmt(total)} baris</b> data Active per ${dstr(today)}.`,'Generate',()=>busy($('#gn'),'Membentuk file…',1100,()=>{gen[upTab]=1;PLOG.push({t:new Date(),type:upTab.toUpperCase(),per:'November 2026',n:total,by:ROLE.name});log('Generate '+upTab.toUpperCase(),'Distribusi',F.length+' file, '+total+' baris','Berhasil');toast('✓ '+F.length+' file '+upTab.toUpperCase()+' siap');vUpload()}));
+ const body=f=>[f.cols.join(f.sep),...rowsOf(f).map(({e,v})=>f.row(e,v).join(f.sep))].join('\r\n');
+ const d1=$('#dl1');if(d1)d1.onclick=()=>showCsv(fname(cur),body(cur));
+ const da=$('#dla');if(da)da.onclick=()=>{let n=0;F.forEach((f,i)=>setTimeout(()=>{if(dlFile(fname(f),body(f),'text/plain;charset=utf-8'))n++;if(i===F.length-1)toast(n?'✓ Mengunduh '+n+' file':'Unduhan diblokir di tampilan ini')},i*350))};
 }
+
 const BA_DESC={'DTTOT & DPPSPM':'Daftar Terduga Teroris dan Organisasi Teroris (DTTOT) dan Daftar Pendanaan Proliferasi Senjata Pemusnah Massal (DPPSPM)','Informasi Teroris & Sanctions':'Informasi Teroris PPATK, Densus 88, dan Sanctions List',
  'Scammer':'Data dengan jenis Scammer (internal, regulator, PUPN, dan Tindak Pidana Siber)','Judol':'Daftar Judi Online internal maupun eksternal (BI, OJK, Polri, Kominfo, Kejaksaan, PPATK)',
  'Negative News':'Negative News yang bersumber dari inisiatif kantor pusat dan hasil analisa LTKM','Blokir':'Blokir yang bersumber dari pihak Regulator, Eksternal, dan Internal',
