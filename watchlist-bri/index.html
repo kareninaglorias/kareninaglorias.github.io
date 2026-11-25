@@ -154,7 +154,8 @@ pre.code{background:var(--head);border-radius:10px;padding:12px;max-height:300px
 .st::after{content:"";position:absolute;top:10px;left:-50%;right:50%;height:2px;background:var(--line)}.st:first-child::after{display:none}
 .st.done{color:var(--ok)}.st.done::before{background:var(--ok);color:#fff}.st.done::after{background:var(--ok)}
 .st.cur{color:var(--blue2);font-weight:600}.st.cur::before{background:var(--blue2);color:#fff}
-.drop{border:2px dashed var(--grid);border-radius:14px;padding:30px;text-align:center;color:var(--mute);cursor:pointer}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:180px;border:2px dashed var(--grid);border-radius:14px;padding:30px;text-align:center;color:var(--mute);cursor:pointer}
+.drop p{margin:0}.drop svg.i{width:28px;height:28px;color:var(--blue2)}
 .drop:hover,.drop.ov{border-color:var(--blue2);background:var(--sky)}
 .empty{text-align:center;padding:40px;color:var(--mute)}
 .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}@media(max-width:1100px){.split{grid-template-columns:1fr}}
