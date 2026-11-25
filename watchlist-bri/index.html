@@ -883,8 +883,8 @@ const PATCH={
    row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',e.rek||'',DMY8(v.tgl),v.sub.slice(0,3),J7(e.created),DMY6(e.created),J7(v.tglLapor),DMY6(v.tglLapor),'CONFIRMED']},
   {k:'ngv',l:'Negative List',sep:'\t',ext:'txt',f:(e,v)=>!isRej(e),
    cols:['BLNLID','BLSSNO','BLNA1','BLCIFN','BLACNO','BLBIR8','BLHTYP','BLINP7','BLINP6','BLRPT7','BLRPT6','BLSTSC','BLDTSR'],
-   map:['ID Subkategori','NIK','Nama','CIF','No. rekening','Tgl lahir (YYYYMMDD)','Kode subkategori','Tgl diinput (YYYYDDD)','Tgl diinput (DDMMYY)','Tgl dilaporkan (YYYYDDD)','Tgl dilaporkan (DDMMYY)','CONFIRMED','Sumber'],
-   row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',e.rek||'',D8(v.tgl),v.sub.slice(0,3),J7(e.created),DMY6(e.created),J7(v.tglLapor),DMY6(v.tglLapor),'CONFIRMED',v.src]}]};
+   map:['ID Subkategori','NIK','Nama','CIF','No. rekening','Tgl lahir (DDMMYYYY)','Kode subkategori','Tgl diinput (YYYYDDD)','Tgl diinput (DDMMYY)','Tgl dilaporkan (YYYYDDD)','Tgl dilaporkan (DDMMYY)','CONFIRMED','Sumber'],
+   row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',e.rek||'',DMY8(v.tgl),v.sub.slice(0,3),J7(e.created),DMY6(e.created),J7(v.tglLapor),DMY6(v.tglLapor),'CONFIRMED',v.src]}]};
 let pfmt={hue:'rej',iris:'ter'};
 function vUpload(){
  const aml=roleKey==='aml';
