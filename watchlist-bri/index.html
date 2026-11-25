@@ -1113,32 +1113,34 @@ function vMaster(){
 /* ================= USER MANAGEMENT ================= */
 const FEATS=[['dash','Dashboard'],['wdm','Watchlist Data Management (lihat)'],['export','Export data'],['submit','Submit Data'],['mysub','My Submission'],['chk','Approval · Checker'],['sgn','Approval · Signer'],['dva','Approval · PIC Watchlist (DVA) + edit'],['patch','Upload Watchlist (HUE/IRIS)'],['ba','Generate BA'],['audit','Audit Trail'],['master','Master Data (kelola)'],['users','User Management']];
 let RLS=[{n:'AML Admin',f:FEATS.map(x=>x[0])},{n:'Maker',f:['dash','wdm','export','submit','mysub','audit']},{n:'Checker/Signer',f:['dash','wdm','chk','sgn','audit']},{n:'Auditor',f:['dash','wdm','audit']}];
-let GRPS=[{n:'AML Group',sc:'all'},{n:'Unit Kerja A',sc:['Scammer','Judol','Blokir','Delisting Rejection List']},{n:'Unit Kerja B',sc:['Negative News','SIPENDAR']},{n:'Unit Kerja C',sc:['Bank Koresponden','Informasi Lainnya']},{n:'Audit Internal',sc:'all'}];
+const srcsOf=a=>a.flatMap(x=>SRC[x]||[]);
+let GRPS=[{n:'AML Group',sc:'all'},{n:'Unit Kerja A',sc:srcsOf(['Scammer','Judol','Blokir'])},{n:'Unit Kerja B',sc:srcsOf(['Negative News','SIPENDAR'])},{n:'Unit Kerja C',sc:srcsOf(['Bank Koresponden','Informasi Lainnya'])},{n:'Audit Internal',sc:'all'}];
 let USRS=[{n:'Rina Anggraeni',id:'00123451',r:'AML Admin',g:'AML Group'},{n:'Sekar Sari Syaharani',id:'00134502',r:'AML Admin',g:'AML Group'},{n:'Siti Maharani',id:'00211873',r:'Maker',g:'Unit Kerja A'},{n:'Bagus Pranoto',id:'00219904',r:'Checker/Signer',g:'Unit Kerja A'},{n:'Doni Pratama',id:'00305518',r:'Maker',g:'Unit Kerja B'},{n:'Wulan Kartika',id:'00317720',r:'Checker/Signer',g:'Unit Kerja B'},{n:'Hadi Santoso',id:'00402261',r:'Maker',g:'Unit Kerja C'},{n:'Tim Audit Internal',id:'00900001',r:'Auditor',g:'Audit Internal'}];
 let uTab='user';const ust=(t,k)=>MSTAT['u'+t+'|'+k]||'Active';
 function vUsers(){
  const allSubs=CATS.flatMap(c=>SUBC[c]),T={user:'User',role:'Role',group:'Group'};
- const scTxt=g=>g.sc==='all'?'Semua subkategori':g.sc.join(', ');
+ const allSrc=allSubs.flatMap(x=>SRC[x]||[]);
+ const scTxt=g=>{if(g.sc==='all')return 'Semua sumber ('+allSrc.length+')';const by=allSubs.map(x=>[x,(SRC[x]||[]).filter(z=>g.sc.includes(z)).length,(SRC[x]||[]).length]).filter(a=>a[1]);return g.sc.length+' sumber · '+by.map(([x,n,t])=>x+(n===t?' (semua)':' ('+n+'/'+t+')')).join(', ')};
  $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>User Management</h1></div>
  <div class="tabs" id="ut2">${Object.entries(T).map(([k,l])=>`<button data-t="${k}" class="${uTab===k?'on':''}">${l}</button>`).join('')}</div></div><div class="card" id="ub2"></div>`;
  $('#ut2').onclick=e=>{const b=e.target.closest('button');if(b){uTab=b.dataset.t;vUsers()}};
  let head,rows;
  if(uTab==='user'){head=['NAMA','PERSONAL NUMBER','ROLE','GROUP','STATUS'];rows=USRS.map(u=>({k:u.n,c:[u.n,u.id,u.r,u.g]}))}
  if(uTab==='role'){head=['ROLE','AKSES FITUR','JUMLAH USER','STATUS'];rows=RLS.map(r=>({k:r.n,c:[r.n,r.f.length===FEATS.length?'Semua fitur':r.f.map(x=>FEATS.find(f=>f[0]===x)[1]).join(', '),String(USRS.filter(u=>u.r===r.n).length)]}))}
- if(uTab==='group'){head=['GROUP','AKSES DATA (SUBKATEGORI)','JUMLAH USER','STATUS'];rows=GRPS.map(g=>({k:g.n,c:[g.n,scTxt(g),String(USRS.filter(u=>u.g===g.n).length)]}))}
+ if(uTab==='group'){head=['GROUP','WEWENANG PENAMBAHAN DATA SUMBER','JUMLAH USER','STATUS'];rows=GRPS.map(g=>({k:g.n,c:[g.n,scTxt(g),String(USRS.filter(u=>u.g===g.n).length)]}))}
  $('#ub2').innerHTML=`<div class="bar2"><label class="search" style="flex:0 1 360px">${ic('search')}<input id="uq" placeholder="Cari ${T[uTab].toLowerCase()}…"></label><div style="flex:1"></div><button class="btn pri" id="uadd">${ic('in')}Tambah ${T[uTab]}</button></div>
  <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}<th>ACTION</th></tr></thead><tbody>${rows.map((r,i)=>`<tr data-txt="${esc(r.c.join(' ').toLowerCase())}">${r.c.map(v=>`<td style="white-space:normal;max-width:520px">${esc(v)}</td>`).join('')}<td>${stBadge(ust(uTab,r.k))}</td><td><button class="link" data-ed="${i}">Edit</button> <button class="link" data-tg="${i}" style="color:var(--${ust(uTab,r.k)==='Active'?'err':'ok'})">${ust(uTab,r.k)==='Active'?'Nonaktifkan':'Aktifkan'}</button></td></tr>`).join('')}</tbody></table></div>`;
  $('#uq').oninput=e=>{const v=e.target.value.toLowerCase();document.querySelectorAll('#ub2 tr[data-txt]').forEach(t=>t.hidden=!t.dataset.txt.includes(v))};
  const done=(a,k,chg)=>{log('User Management · '+a,T[uTab],k,'Berhasil',chg);toast(T[uTab]+' "'+k+'" '+a)};
  document.querySelectorAll('#ub2 [data-tg]').forEach(b=>b.onclick=()=>{const r=rows[+b.dataset.tg],off=ust(uTab,r.k)==='Active',run=()=>{MSTAT['u'+uTab+'|'+r.k]=off?'Inactive':'Active';done(off?'dinonaktifkan':'diaktifkan',r.k,[['Status',off?'Active':'Inactive',off?'Inactive':'Active']]);vUsers()};
-  off?confirmDlg('Nonaktifkan '+r.k+'?',uTab==='user'?'User tidak bisa login sampai diaktifkan kembali.':uTab==='role'?'User dengan role ini kehilangan akses fiturnya.':'User di group ini kehilangan akses datanya.','Nonaktifkan',run,true):run()});
+  off?confirmDlg('Nonaktifkan '+r.k+'?',uTab==='user'?'User tidak bisa login sampai diaktifkan kembali.':uTab==='role'?'User dengan role ini kehilangan akses fiturnya.':'User di group ini tidak bisa lagi mengajukan data dari sumber yang diberikan.','Nonaktifkan',run,true):run()});
  const edit=r=>{
-  if(uTab==='user'){const u=r?USRS.find(x=>x.n===r.k):null;mForm(r?'Ubah user':'Tambah user',[{n:'n',l:'Nama',v:u?.n,req:1},{n:'id',l:'Personal Number',v:u?.id,req:1},{n:'r',l:'Role (akses fitur)',t:'select',o:RLS.map(x=>x.n),v:u?.r},{n:'g',l:'Group (akses data)',t:'select',o:GRPS.map(x=>x.n),v:u?.g}],d=>{
+  if(uTab==='user'){const u=r?USRS.find(x=>x.n===r.k):null;mForm(r?'Ubah user':'Tambah user',[{n:'n',l:'Nama',v:u?.n,req:1},{n:'id',l:'Personal Number',v:u?.id,req:1},{n:'r',l:'Role (akses fitur)',t:'select',o:RLS.map(x=>x.n),v:u?.r},{n:'g',l:'Group (wewenang sumber)',t:'select',o:GRPS.map(x=>x.n),v:u?.g}],d=>{
    if(!u&&USRS.some(x=>x.id===d.id))return 'Personal Number sudah terdaftar';const chg=u?[['Role',u.r,d.r],['Group',u.g,d.g]].filter(c=>c[1]!==c[2]):null;if(u)Object.assign(u,d);else USRS.push(d);uTab='user';done(u?'diubah':'ditambahkan',d.n,chg)})}
   if(uTab==='role'){const o=r?RLS.find(x=>x.n===r.k):null;mForm(r?'Ubah role':'Tambah role',[{n:'n',l:'Nama role',v:o?.n,req:1},{n:'f',l:'Akses fitur',t:'checks',o:FEATS.map(x=>x[1]),v:o?o.f.map(x=>FEATS.find(f=>f[0]===x)[1]):[],req:1}],d=>{
    const f=d.f.map(l=>FEATS.find(x=>x[1]===l)[0]);if(o){if(o.n!==d.n)USRS.forEach(u=>{if(u.r===o.n)u.r=d.n});o.n=d.n;o.f=f}else{if(RLS.some(x=>x.n===d.n))return 'Role sudah ada';RLS.push({n:d.n,f})}done(o?'diubah':'ditambahkan',d.n)})}
-  if(uTab==='group'){const o=r?GRPS.find(x=>x.n===r.k):null;mForm(r?'Ubah group':'Tambah group',[{n:'n',l:'Nama group',v:o?.n,req:1},{n:'sc',l:'Akses data (subkategori)',t:'checks',o:allSubs,v:o?(o.sc==='all'?allSubs:o.sc):[],req:1}],d=>{
-   const sc=d.sc.length===allSubs.length?'all':d.sc;if(o){if(o.n!==d.n)USRS.forEach(u=>{if(u.g===o.n)u.g=d.n});o.n=d.n;o.sc=sc}else{if(GRPS.some(x=>x.n===d.n))return 'Group sudah ada';GRPS.push({n:d.n,sc})}done(o?'diubah':'ditambahkan',d.n)})}
+  if(uTab==='group'){const o=r?GRPS.find(x=>x.n===r.k):null;mForm(r?'Ubah group':'Tambah group',[{n:'n',l:'Nama group',v:o?.n,req:1},{n:'sc',l:'Wewenang penambahan data sumber',t:'checks',o:allSrc,v:o?(o.sc==='all'?allSrc:o.sc):[],req:1}],d=>{
+   const sc=d.sc.length===allSrc.length?'all':d.sc;if(o){if(o.n!==d.n)USRS.forEach(u=>{if(u.g===o.n)u.g=d.n});o.n=d.n;o.sc=sc}else{if(GRPS.some(x=>x.n===d.n))return 'Group sudah ada';GRPS.push({n:d.n,sc})}done(o?'diubah':'ditambahkan',d.n)})}
  };
  $('#uadd').onclick=()=>edit(null);
  document.querySelectorAll('#ub2 [data-ed]').forEach(b=>b.onclick=()=>edit(rows[+b.dataset.ed]));
