@@ -578,12 +578,9 @@ function validate(r){const issues={};
  if(r.mm&&!issues.tgl_lahir)issues.tgl_lahir=['w','Mismatch dengan Big Data (1988-04-12)'];
  r.st=Object.values(issues).some(x=>x[0]==='e')?'Error':Object.keys(issues).length?'Warning':'Valid';r.iss=issues;return r}
 function bulk(){
- if(!BULK){$('#ib').innerHTML=`<div class="g row2"><div class="card"><h2>1. Unggah file</h2><p class="sub" style="margin:4px 0 14px">Format .xlsx atau .csv sesuai template standar BRI.</p>
+ if(!BULK){$('#ib').innerHTML=`<div class="card" style="max-width:820px"><div class="ch"><div><h2>Unggah file</h2><p>Format .xlsx atau .csv sesuai template standar BRI. Kolom wajib mengikuti kategori.</p></div><div class="sp"></div><button class="btn" id="tpl">${ic('dl')}Unduh template</button></div>
   <label class="drop" id="drop">${ic('up')}<p><b style="color:var(--ink)">Tarik file ke sini atau klik untuk memilih</b><br>Maks. 10.000 baris per file</p><input type="file" accept=".csv,.xlsx" hidden id="fi"></label>
-  <div style="text-align:center;margin-top:12px"><button class="btn" id="smp">Gunakan file contoh (12 baris)</button></div></div>
-  <div class="card"><h2>Template standar BRI</h2><p class="sub" style="margin:4px 0 12px">Satu template untuk semua kategori; kolom wajib ditandai per kategori.</p>
-  <div class="tw" style="max-height:260px"><table class="x"><thead><tr><th>KOLOM</th>${CATS.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${Object.entries(FIELDS).map(([k,l])=>`<tr><td>${l}</td>${CATS.map(c=>`<td style="text-align:center">${MAND[c].includes(k)?'<b style="color:var(--err)">Wajib</b>':'<span style="color:var(--mute)">opsional</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-  <button class="btn" style="margin-top:12px" id="tpl">${ic('dl')}Unduh template</button></div></div>`;
+  <div style="text-align:center;margin-top:12px"><button class="btn" id="smp">Gunakan file contoh (12 baris)</button></div></div>`;
   const load=name=>{BULK={name,rows:sampleRows()};toast('File dibaca: 12 baris');bulk()};
   $('#smp').onclick=()=>load('Watchlist_Scammer_Nov.xlsx');$('#fi').onchange=e=>e.target.files[0]&&load(e.target.files[0].name);
   const d=$('#drop');d.ondragover=e=>{e.preventDefault();d.classList.add('ov')};d.ondragleave=()=>d.classList.remove('ov');d.ondrop=e=>{e.preventDefault();d.classList.remove('ov');e.dataTransfer.files[0]&&load(e.dataTransfer.files[0].name)};
