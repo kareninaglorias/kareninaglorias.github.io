@@ -230,6 +230,7 @@ const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=
 const ic=n=>`<svg class="i"><use href="#i-${n}"/></svg>`;
 const fmt=n=>n.toLocaleString('id-ID');
 const nul=v=>v==null||v===''?'<td class="n">NULL</td>':`<td>${esc(v)}</td>`;
+const mkCif=f=>[0,0,0].map(()=>String.fromCharCode(65+Math.floor(f()*26))).join('')+String(Math.floor(f()*1e4)).padStart(4,'0');
 let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;const pick=a=>a[Math.floor(rnd()*a.length)];
 const today=new Date(2026,10,25);const dstr=d=>d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
 const daysAgo=n=>{const d=new Date(today);d.setDate(d.getDate()-n);return d};
@@ -288,7 +289,7 @@ for(let i=1;i<=60;i++){
  const nik='3'+String(Math.floor(rnd()*1e15)).padStart(15,'0');
  const e={id:newEid(sub,src),cat,sub,status,unit:pick(UNITS),
   key:isKD?'KD-'+String(100+i).padStart(4,'0'):nik,
-  nik:isKD?(rnd()<.5?null:nik):nik,cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):null,rek:!isKD&&rnd()<.6?'0'+Math.floor(rnd()*1e14):null,
+  nik:isKD?(rnd()<.5?null:nik):nik,cif:rnd()<.5?mkCif(rnd):null,rek:!isKD&&rnd()<.6?'0'+Math.floor(rnd()*1e14):null,
   kwn:isKD?pick(['Indonesia','Malaysia','Filipina',null]):'Indonesia',created:daysAgo(Math.floor(rnd()*300)+20),updated:daysAgo(Math.floor(rnd()*20)+5),
   vars:[]};
  const tl=pick(CITIES),dob=new Date(1965+Math.floor(rnd()*35),Math.floor(rnd()*12),1+Math.floor(rnd()*27));
@@ -325,6 +326,7 @@ function restoreToRejection(ne,why,by,t=new Date()){
  o.status='Active';o.updated=t;o.hist.push({t,a:'Dikembalikan ke Rejection List',u:by,r:'Dari '+ne.id+' · '+why});
  ne.status='Delisted';ne.restored=true;ne.updated=t;ne.hist.push({t,a:'Dikembalikan ke Rejection List',u:by,r:'Record di-delist, variasi aktif kembali di '+o.id+' · '+why});
 }
+{const a=ENT.find(e=>e.sub==='Blokir'),b=ENT.find(e=>e.sub==='Scammer'),c=ENT.find(e=>TERR(e.sub));if(a)a.vars[0].nama="ABD AL-RAHMAN AL-NU'AYMI \n";if(b){b.vars[0].alamat='Jl. Merdeka; No.5 "Blok C"  ';b.cif='MABK16599'}if(c)c.vars[0].tempat='KOTA ADMINISTRASI JAKARTA SELATAN'}
 // seed: some delisting history (IDs assigned after)
 ENT.filter(e=>e.cat==='Rejection List').slice(0,3).forEach((e,i)=>delistVars(e,i===1&&e.vars.length>1?[e.vars[1].vid]:e.vars.map(v=>v.vid),'Surat pencabutan dari sumber','AML Admin',daysAgo(10+i)));
 ENT.filter(e=>e.cat==='Negative List'&&e.sub!=='Delisting Rejection List').slice(0,1).forEach((e,i)=>delistVars(e,e.vars.map(v=>v.vid),'Putusan pengadilan','AML Admin',daysAgo(6+i)));
@@ -707,7 +709,7 @@ function single(){
   const r={cat:scCat};Object.keys(FIELDS).forEach(k=>r[k]=f[k]?.value||'');BULK=BULK||{name:'Single entry',rows:[]};BULK.rows.push(r);inTab='bulk';vInput();toast('Record ditambahkan ke preview')};
 }
 function sampleRows(){const R=[];const ex=ENT.find(e=>e.sub==='Scammer');
- for(let i=0;i<12;i++){const c=i<8?'Scammer':'Blokir';R.push({cat:c,nama:pick(NAMES),nik:'3'+String(Math.floor(rnd()*1e15)).padStart(15,'0'),cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):'',rek:rnd()<.5?'0'+Math.floor(rnd()*1e14):'',tempat_lahir:pick(CITIES),tgl_lahir:'198'+i%10+'-0'+(1+i%9)+'-1'+i%9,alamat:'Jl. Kenanga No.'+(i+3),sumber:pick(SRC[c].slice(0,4)),no_surat:'ND-'+(900+i)+'/UKA/2026',tgl_lapor:'2026-11-1'+i%9,kode:'',alias:'',kwn:'Indonesia'})}
+ for(let i=0;i<12;i++){const c=i<8?'Scammer':'Blokir';R.push({cat:c,nama:pick(NAMES),nik:'3'+String(Math.floor(rnd()*1e15)).padStart(15,'0'),cif:rnd()<.5?mkCif(rnd):'',rek:rnd()<.5?'0'+Math.floor(rnd()*1e14):'',tempat_lahir:pick(CITIES),tgl_lahir:'198'+i%10+'-0'+(1+i%9)+'-1'+i%9,alamat:'Jl. Kenanga No.'+(i+3),sumber:pick(SRC[c].slice(0,4)),no_surat:'ND-'+(900+i)+'/UKA/2026',tgl_lapor:'2026-11-1'+i%9,kode:'',alias:'',kwn:'Indonesia'})}
  R[11]={...R[0],alamat:'Jl. Anggrek No.21, Depok',sumber:R[0].sumber,no_surat:R[0].no_surat};R[4]={...R[3]};R[2].nik='3271'+'0012';R[5].no_surat='';R[7].nik=ex.key;R[7].nama=ex.name+' S.';R[9].sumber='';R[10].mm=true;return R}
 function validate(r){const issues={};
  MAND[r.cat].forEach(k=>{if(!String(r[k]||'').trim())issues[k]=['e','Wajib untuk '+r.cat]});
@@ -777,7 +779,7 @@ function subRows(s){if(s.rows)return s.rows;
  let sd=s.id.split('-').pop()*97;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,pk=a=>a[Math.floor(r()*a.length)];
  const sub=subSub(s),kd=sub==='DTTOT & DPPSPM';
  s.rows=Array.from({length:s.n},(_,i)=>{const nm=pk(NAMES),tl=pk(CITIES);const st=i<s.err?'Error':i<s.err+s.warn?'Warning':'Valid';
-  const row={cat:sub,nama:nm,alias:kd&&r()<.4?nm.split(' ')[0]+' alias Abu':'',nik:kd&&r()<.5?'':'3'+String(Math.floor(r()*1e15)).padStart(15,'0'),kode:kd?'KD-'+(3000+i):'',cif:r()<.5?'CIF'+Math.floor(r()*1e7):'',rek:!kd&&r()<.6?'0'+Math.floor(r()*1e14):'',tempat_lahir:tl,tgl_lahir:(1960+Math.floor(r()*40))+'-0'+(1+Math.floor(r()*9))+'-1'+Math.floor(r()*9),alamat:'Jl. '+pk(['Merdeka','Sudirman','Kenanga','Melati','Diponegoro'])+' No.'+(1+Math.floor(r()*90))+', '+tl,kwn:'Indonesia',sumber:pk(SRC[sub]),no_surat:pk(s.letters),tgl_lapor:'2026-11-'+String(1+Math.floor(r()*20)).padStart(2,'0'),st};
+  const row={cat:sub,nama:nm,alias:kd&&r()<.4?nm.split(' ')[0]+' alias Abu':'',nik:kd&&r()<.5?'':'3'+String(Math.floor(r()*1e15)).padStart(15,'0'),kode:kd?'KD-'+(3000+i):'',cif:r()<.5?mkCif(r):'',rek:!kd&&r()<.6?'0'+Math.floor(r()*1e14):'',tempat_lahir:tl,tgl_lahir:(1960+Math.floor(r()*40))+'-0'+(1+Math.floor(r()*9))+'-1'+Math.floor(r()*9),alamat:'Jl. '+pk(['Merdeka','Sudirman','Kenanga','Melati','Diponegoro'])+' No.'+(1+Math.floor(r()*90))+', '+tl,kwn:'Indonesia',sumber:pk(SRC[sub]),no_surat:pk(s.letters),tgl_lapor:'2026-11-'+String(1+Math.floor(r()*20)).padStart(2,'0'),st};
   row.iss=st==='Error'?{nik:['e','NIK harus 16 digit']}:st==='Warning'?{tgl_lahir:['w','Mismatch dengan Big Data']}:{};if(st==='Error')row.nik='3271'+Math.floor(r()*1e5);return row});
  return s.rows}
 function subData(s){
@@ -865,11 +867,11 @@ const D8=d=>d?isoD(d).replace(/-/g,''):'',DMY8=d=>{const x=D8(d);return x?x.slic
  DMY6=d=>{const x=D8(d);return x?x.slice(6,8)+x.slice(4,6)+x.slice(2,4):''},U=v=>v?String(v).toUpperCase():'';
 const isTerr=v=>TERR(v.subName),isRej=e=>e.cat==='Rejection List';
 const PATCH={
- hue:[{k:'rej',l:'Rejection List',sep:'|',ext:'txt',f:(e,v)=>isRej(e),
+ hue:[{k:'rej',l:'Rejection List',sep:'|',ext:'csv',f:(e,v)=>isRej(e),
    cols:['No. ID','NIK','Nama','CIF','Alias Nama','Tempat Lahir','Tanggal Lahir','Alamat','Kewarganegaraan','Type','Data Source'],
    map:['ID Subkategori','NIK','Nama','CIF','Alias','Tempat lahir','Tgl lahir (YYYYMMDD)','Alamat','Kewarganegaraan','Kode subkategori','Sumber'],
    row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',U(v.alias),U(v.tempat),D8(v.tgl),U(v.alamat)||'-',U(e.kwn),v.sub.slice(0,3),v.src]},
-  {k:'ngv',l:'Negative List',sep:'|',ext:'txt',f:(e,v)=>!isRej(e),
+  {k:'ngv',l:'Negative List',sep:'|',ext:'csv',f:(e,v)=>!isRej(e),
    cols:['No. ID','NIK','Nama','CIF','No. Rekening','Tanggal Lahir','Type','Tanggal Diinput','Tanggal Dilaporkan','Check Status','Data Source'],
    map:['ID Subkategori','NIK','Nama','CIF','No. rekening','Tgl lahir (YYYYMMDD)','Kode subkategori','Tgl diinput (YYYYMMDD)','Tgl dilaporkan (YYYYMMDD)','CONFIRMED','Sumber'],
    row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',e.rek||'',D8(v.tgl),v.sub.slice(0,3),D8(e.created),D8(v.tglLapor),'CONFIRMED',v.src]}],
@@ -886,6 +888,18 @@ const PATCH={
    map:['ID Subkategori','NIK','Nama','CIF','No. rekening','Tgl lahir (DDMMYYYY)','Kode subkategori','Tgl diinput (YYYYDDD)','Tgl diinput (DDMMYY)','Tgl dilaporkan (YYYYDDD)','Tgl dilaporkan (DDMMYY)','CONFIRMED','Sumber'],
    row:(e,v)=>[v.sub,e.nik||'',U(v.nama),e.cif||'',e.rek||'',DMY8(v.tgl),v.sub.slice(0,3),J7(e.created),DMY6(e.created),J7(v.tglLapor),DMY6(v.tglLapor),'CONFIRMED',v.src]}]};
 let pfmt={hue:'rej',iris:'ter'};
+const base=v=>String(v??'').replace(/[\r\n]+/g,' ').replace(/\s+$/,'').replace(/^\s+/,'');
+function cleanVal(sys,lbl,v){let x=base(v);if(sys==='hue')return x.replace(/[;"]/g,'');
+ x=x.replace(/[;"]/g,'');const L=lbl.toLowerCase();
+ if(L==='nama')x=x.replace(/'/g,'').slice(0,40);
+ else if(L.startsWith('tgl lahir'))x=/^0+$/.test(x)?'0':x;
+ else if(L==='tempat lahir')x=x.slice(0,20);
+ else if(L==='no. rekening')x=x.slice(0,15);
+ else if(L==='cif')x=x.slice(0,7);
+ else if(L==='nik')x=x.slice(0,25);
+ else if(L==='alamat')x=x.slice(0,200);
+ return x}
+const cleanRow=(f,raw)=>raw.map((v,i)=>cleanVal(upTab,f.map[i],v));
 function vUpload(){
  const aml=roleKey==='aml';
  $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Upload Watchlist</h1><p class="sub" style="margin:0">Output distribusi format baku. Distribusi bulanan sebelum tanggal 10.</p></div>
@@ -897,14 +911,14 @@ function vUpload(){
  const F=PATCH[upTab],cur=F.find(x=>x.k===pfmt[upTab])||F[0],rowsOf=f=>all.filter(({e,v})=>f.f(e,v)),R=rowsOf(cur),total=all.length;
  const fname=f=>`PATCH_${upTab.toUpperCase()}_${f.l.replace(/\W+/g,'_').toUpperCase()}_202611.${f.ext}`;
  $('#ub').innerHTML=`<div class="card"><div class="ch"><div><h2>${upTab==='hue'?'Patching HUE':'Patching IRIS'}</h2><p>${F.length} format file · data Active di Rejection List dan Negative List · as-of ${dstr(today)}</p></div><div class="sp"></div><span class="lock">${ic('lock')}Format baku</span></div>
- ${gen[upTab]?`<div class="bar2"><div class="tabs" id="pft">${F.map(f=>`<button data-f="${f.k}" class="${f===cur?'on':''}">${f.l} <small style="opacity:.7">${fmt(rowsOf(f).length)}</small></button>`).join('')}</div><div style="flex:1"></div><span style="font-size:12px;color:var(--mute)">${esc(fname(cur))} · pemisah ${cur.sep==='|'?'pipe ( | )':'tab'}</span></div>
-  <div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cur.cols.map((c,i)=>`<th style="text-transform:none">${esc(c)}<br><span style="font-weight:400;letter-spacing:0;color:var(--blue2)">← ${esc(cur.map[i])}</span></th>`).join('')}</tr></thead><tbody>${R.slice(0,20).map(({e,v},i)=>`<tr><td class="rn">${i+1}</td>${cur.row(e,v).map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+ ${gen[upTab]?`<div class="bar2"><div class="tabs" id="pft">${F.map(f=>`<button data-f="${f.k}" class="${f===cur?'on':''}">${f.l} <small style="opacity:.7">${fmt(rowsOf(f).length)}</small></button>`).join('')}</div><div style="flex:1"></div><span style="font-size:12px;color:var(--mute)">${esc(fname(cur))} · pemisah ${cur.sep==='|'?'pipe ( | )':'tab'} · ${upTab==='hue'?'trim, tanpa enter, tanpa ; dan "':'trim, nama tanpa \' maks. 40, batas panjang kolom IRIS'}</span></div>
+  <div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cur.cols.map((c,i)=>`<th style="text-transform:none">${esc(c)}<br><span style="font-weight:400;letter-spacing:0;color:var(--blue2)">← ${esc(cur.map[i])}</span></th>`).join('')}</tr></thead><tbody>${R.slice(0,20).map(({e,v},i)=>{const raw=cur.row(e,v),cl=cleanRow(cur,raw);return `<tr><td class="rn">${i+1}</td>${cl.map((x,j)=>String(raw[j]??'')!==x?`<td class="cw" title="Dibersihkan dari: ${esc(raw[j])}">${esc(x)}</td>`:`<td>${esc(x)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>
   <div class="pg"><span>${fmt(R.length)} baris di file ini · ${fmt(total)} baris total ${upTab.toUpperCase()} (${F.length} file)</span><div class="pb"><button class="btn" id="dl1">${ic('dl')}Unduh file ini</button><button class="btn pri" id="dla">${ic('dl')}Unduh semua (${F.length})</button></div></div>`
   :`<div class="empty">${ic('file')}<p>Belum ada file yang dibentuk untuk periode ini.<br><small>${F.map(f=>f.l).join(' · ')}</small></p><button class="btn pri" id="gn">Generate ${upTab.toUpperCase()}</button></div>`}</div>`;
  $('#ub').insertAdjacentHTML('beforeend',plogCard(upTab.toUpperCase()));bindPlog();
  const pft=$('#pft');if(pft)pft.onclick=ev=>{const b=ev.target.closest('button');if(b){pfmt[upTab]=b.dataset.f;vUpload()}};
  const gn=$('#gn');if(gn)gn.onclick=()=>confirmDlg('Generate patching '+upTab.toUpperCase()+'?',`Membentuk ${F.length} file (${F.map(f=>f.l).join(', ')}) dari <b>${fmt(total)} baris</b> data Active per ${dstr(today)}.`,'Generate',()=>busy($('#gn'),'Membentuk file…',1100,()=>{gen[upTab]=1;PLOG.push({t:new Date(),type:upTab.toUpperCase(),per:'November 2026',n:total,by:ROLE.name});log('Generate '+upTab.toUpperCase(),'Distribusi',F.length+' file, '+total+' baris','Berhasil');toast('✓ '+F.length+' file '+upTab.toUpperCase()+' siap');vUpload()}));
- const body=f=>[f.cols.join(f.sep),...rowsOf(f).map(({e,v})=>f.row(e,v).join(f.sep))].join('\r\n');
+ const body=f=>[f.cols.join(f.sep),...rowsOf(f).map(({e,v})=>cleanRow(f,f.row(e,v)).join(f.sep))].join('\r\n');
  const d1=$('#dl1');if(d1)d1.onclick=()=>showCsv(fname(cur),body(cur));
  const da=$('#dla');if(da)da.onclick=()=>{let n=0;F.forEach((f,i)=>setTimeout(()=>{if(dlFile(fname(f),body(f),'text/plain;charset=utf-8'))n++;if(i===F.length-1)toast(n?'✓ Mengunduh '+n+' file':'Unduhan diblokir di tampilan ini')},i*350))};
 }
