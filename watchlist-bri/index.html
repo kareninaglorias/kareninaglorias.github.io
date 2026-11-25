@@ -462,12 +462,12 @@ function bindChips(rerender){
 function vWdm(){
  $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Watchlist Data Management</h1><p class="sub" style="margin:0" id="wsub"></p></div>
   <div class="tabs" id="vt"><button data-v="item" class="${wv==='item'?'on':''}">Item View</button><button data-v="detail" class="${wv==='detail'?'on':''}">Detail View</button></div>
-  <button class="btn" id="exp">${ic('dl')}Export</button>${roleKey!=='checker'?`<button class="btn pri" id="add">${ic('in')}Submit Data</button>`:''}</div>
+  <button class="btn" id="exp">${ic('dl')}Export</button></div>
   <div class="card"><div class="bar2"><label class="search">${ic('search')}<input id="q" placeholder="Cari nama, alias, ID Watchlist, NIK, CIF, Kode Dugaan…" value="${esc(q)}"></label></div>
   <div class="bar2" id="chips"></div><div id="tbl"></div></div>`;
  $('#vt').onclick=e=>{const b=e.target.closest('button');if(b){wv=b.dataset.v;pg=1;vWdm()}};
  $('#q').oninput=e=>{q=e.target.value;pg=1;wdmTable()};
- $('#exp').onclick=exportModal;const ad=$('#add');if(ad)ad.onclick=()=>{subType='new';go('input')};
+ $('#exp').onclick=exportModal;
  wdmTable();
 }
 function wdmTable(){
