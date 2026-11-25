@@ -150,6 +150,8 @@ pre.code{background:var(--head);border-radius:10px;padding:12px;max-height:300px
 .stepper b{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--head);font-size:12px;flex:none}.stepper .on{border-color:var(--blue2);color:var(--blue2);font-weight:600}.stepper .on b{background:var(--blue);color:#fff}.stepper .ok{color:var(--ok)}.stepper .ok b{background:var(--ok);color:#fff}
 .sumg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px}@media(max-width:800px){.sumg{grid-template-columns:repeat(2,1fr)}}
 .sumg div{border-radius:12px;padding:10px 14px;cursor:pointer;border:2px solid transparent}.sumg div.act{border-color:currentColor}.sumg small{display:block;font-size:12px}.sumg b{font-size:22px}
+.ci{width:100%;min-width:110px;height:30px;border:1px solid transparent;background:transparent;border-radius:6px;padding:0 6px;font-size:13px}.ci:hover{border-color:var(--line)}.ci[data-p$=".alamat"]{min-width:260px}.ci[data-p$=".nama"]{min-width:170px}select.ci{min-width:180px}.ci[data-p$=".ref"]{min-width:170px}.ci:focus{outline:0;border-color:var(--blue2);background:var(--card)}
+.x td.chg{background:var(--sky)!important}.x td.chg .ci{font-weight:600;color:var(--blue)}.x td.lk{background:var(--head);color:var(--mute)}.x tr.newv td{background:var(--okb)}
 .toasts{position:fixed;bottom:20px;right:20px;z-index:90;display:flex;flex-direction:column;gap:8px}
 .toast{background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px #0004;animation:tin .25s}
 @keyframes tin{from{transform:translateY(10px);opacity:0}}
@@ -238,6 +240,7 @@ const stepper=n=>`<div class="stepper">${['Unggah file','Preview & validasi','Su
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toasts').append(t);setTimeout(()=>t.remove(),3200)}
 const stBadge=s=>`<span class="badge ${s==='Active'?'b-ok':s==='Delisted'?'b-e':'b-m'}">${esc(s)}</span>`;
 const catBadge=c=>`<span class="badge ${c==='Rejection List'?'b-b':c==='Negative List'?'b-w':'b-m'}">${esc(c)}</span>`;
+const actBadge=r=>r.st==='Error'?'<span style="color:var(--mute)">—</span>':r.act==='new'?'<span class="badge b-ok">Entitas baru</span>':`<span class="badge b-b">Variasi → ${esc(r.actRef)}</span>`;
 const vBadge=s=>`<span class="badge ${s==='Valid'?'b-ok':s==='Warning'?'b-w':'b-e'}">${esc(s)}</span>`;
 
 /* ---------- master data ---------- */
@@ -574,6 +577,37 @@ function vInput(){
  if(subType==='new')return inTab==='single'?single():bulk();
  changeForm(subType);
 }
+let EDIT=null;
+const VF=[['nama','Nama'],['alias','Alias Nama'],['tempat','Tempat Lahir'],['tgl','Tanggal Lahir'],['alamat','Alamat'],['ref','No. Surat']];
+const isoD=d=>d instanceof Date?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'):(d||'');
+function edInit(e){return {id:e.id,ent:{sub:e.sub,nik:e.nik||'',cif:e.cif||'',rek:e.rek||'',kwn:e.kwn||''},vars:e.vars.filter(v=>!v.del).map(v=>({vid:v.vid,nama:v.nama||'',alias:v.alias||'',tempat:v.tempat||'',tgl:isoD(v.tgl),alamat:v.alamat||'',ref:v.ref||''})),add:[]}}
+function edChanges(){const e=ENT.find(x=>x.id===EDIT.id),C=[];const o0={sub:e.sub,nik:e.nik||'',cif:e.cif||'',rek:e.rek||'',kwn:e.kwn||''},L={sub:'Subkategori',nik:'NIK',cif:'CIF',rek:'No. Rekening',kwn:'Kewarganegaraan'};
+ Object.keys(o0).forEach(k=>{if(String(EDIT.ent[k]).trim()!==String(o0[k]))C.push({lvl:'Entitas',k,f:L[k],o:o0[k],n:String(EDIT.ent[k]).trim()})});
+ EDIT.vars.forEach((w,i)=>{const v=e.vars.find(x=>x.vid===w.vid);VF.forEach(([k,l])=>{const ov=k==='tgl'?isoD(v.tgl):(v[k]||'');if(String(w[k]).trim()!==String(ov))C.push({lvl:'Variasi '+(i+1),vid:w.vid,k,f:l,o:ov,n:String(w[k]).trim()})})});
+ EDIT.add.forEach((a,i)=>C.push({lvl:'Variasi baru '+(i+1),k:'_add',f:'Variasi baru',o:'',n:[a.nama,a.alamat,a.src].filter(Boolean).join(' · ')}));return C}
+function edDraw(){const e=ENT.find(x=>x.id===EDIT.id),kd=keyOf(e)==='Kode Dugaan',C=edChanges(),ch=(lvl,k)=>C.some(c=>c.lvl===lvl&&c.k===k)?'chg':'';
+ const lk=(v,t)=>`<td class="lk" title="Tidak bisa diubah${t?': '+t:''}">${ic('lock')} ${v?esc(v):'<i>NULL</i>'}</td>`;
+ const inp=(path,v,type)=>`<input class="ci" ${type==='date'?'type="date"':''} data-p="${path}" value="${esc(v)}">`;
+ $('#edg').innerHTML=`<div class="ch"><div><h2>Seluruh kolom ${e.id}</h2><p>Kolom putih bisa langsung diubah. Kolom abu-abu ${ic('lock')} terkunci. Sel yang diubah ditandai biru.</p></div><div class="sp"></div><span class="badge ${C.length?'b-b':'b-m'}">${C.length} perubahan</span><button class="btn sm" id="edrst">Reset</button></div>
+ <h3 style="font-size:13px;margin:4px 0 8px">Atribut entitas</h3>
+ <div class="tw" style="max-height:none"><table class="x"><thead><tr><th>ID WATCHLIST</th><th>KATEGORI</th><th>SUBKATEGORI</th><th>PRIMARY KEY</th><th>STATUS</th><th>PIC GROUP</th><th>NIK</th><th>CIF</th><th>NO. REKENING</th><th>KEWARGANEGARAAN</th></tr></thead><tbody><tr>
+  ${lk(e.id,'dibuat sistem')}${lk(e.cat,'pindah kategori lewat Delisting')}<td class="${ch('Entitas','sub')}"><select class="ci" data-p="ent.sub">${SUBC[e.cat].filter(x=>x!=='Delisting Rejection List'||e.sub===x).map(x=>`<option ${x===EDIT.ent.sub?'selected':''}>${esc(x)}</option>`).join('')}</select></td>
+  ${lk(keyOf(e)+' · '+e.key,'identitas entitas')}${lk(e.status,'lewat Delisting')}${lk(e.unit,'diisi sistem')}
+  ${kd?`<td class="${ch('Entitas','nik')}">${inp('ent.nik',EDIT.ent.nik)}</td>`:lk(e.nik,'NIK adalah primary key')}
+  <td class="${ch('Entitas','cif')}">${inp('ent.cif',EDIT.ent.cif)}</td><td class="${ch('Entitas','rek')}">${inp('ent.rek',EDIT.ent.rek)}</td><td class="${ch('Entitas','kwn')}">${inp('ent.kwn',EDIT.ent.kwn)}</td></tr></tbody></table></div>
+ <div class="ch" style="margin:18px 0 8px"><h3 style="font-size:13px;margin:0">Variasi (${EDIT.vars.length} aktif${EDIT.add.length?' + '+EDIT.add.length+' baru':''})</h3><div class="sp"></div><button class="btn sm pri" id="edadd">${ic('in')}Tambah variasi</button></div>
+ <div class="tw" style="max-height:none"><table class="x"><thead><tr><th class="rn">#</th>${VF.slice(0,5).map(([,l])=>`<th>${l.toUpperCase()}</th>`).join('')}<th>SUMBER</th><th>NO. SURAT</th><th>TGL DILAPORKAN</th><th></th></tr></thead><tbody>
+ ${EDIT.vars.map((w,i)=>{const v=e.vars.find(x=>x.vid===w.vid);return `<tr><td class="rn">${i+1}</td>${VF.slice(0,5).map(([k])=>`<td class="${ch('Variasi '+(i+1),k)}">${inp('v.'+i+'.'+k,w[k],k==='tgl'?'date':'')}</td>`).join('')}${lk(v.src,'provenance')}<td class="${ch('Variasi '+(i+1),'ref')}">${inp('v.'+i+'.ref',w.ref)}</td>${lk(dstr(v.tglLapor),'provenance')}<td></td></tr>`}).join('')}
+ ${e.vars.filter(v=>v.del).map(v=>`<tr style="opacity:.55"><td class="rn">—</td><td colspan="5"><s>${esc(v.nama)} · ${esc(v.alamat)}</s> <small>(sudah didelisting)</small></td>${lk(v.src)}${lk(v.ref)}${lk(dstr(v.tglLapor))}<td></td></tr>`).join('')}
+ ${EDIT.add.map((a,i)=>`<tr class="newv"><td class="rn">+${i+1}</td>${VF.slice(0,5).map(([k])=>`<td>${inp('a.'+i+'.'+k,a[k],k==='tgl'?'date':'')}</td>`).join('')}<td><select class="ci" data-p="a.${i}.src">${SRC[EDIT.ent.sub].map(z=>`<option ${z===a.src?'selected':''}>${esc(z)}</option>`).join('')}</select></td><td>${inp('a.'+i+'.ref',a.ref)}</td><td class="lk">Hari ini</td><td><button class="link" data-rm="${i}" title="Hapus baris">${ic('x')}</button></td></tr>`).join('')}
+ </tbody></table></div><p class="note">Variasi baru boleh memakai sumber dan no. surat yang sama dengan variasi lain. Menghapus variasi dilakukan lewat Delisting.</p>`;
+ const box=$('#edg');
+ box.onchange=box.oninput=ev=>{const p=ev.target.dataset.p;if(!p)return;const [g,a,b]=p.split('.');if(g==='ent')EDIT.ent[a]=ev.target.value;else (g==='v'?EDIT.vars:EDIT.add)[+a][b]=ev.target.value;
+  if(ev.type==='change'){const pos=ev.target.selectionStart;edDraw();const n=box.querySelector(`[data-p="${p}"]`);if(n&&n.type==='text'){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}}else{const C=edChanges();box.querySelector('.ch .badge').textContent=C.length+' perubahan';ev.target.closest('td').classList.toggle('chg',g!=='a'&&C.some(c=>c.k===(g==='ent'?a:b)&&(g==='ent'?c.lvl==='Entitas':c.lvl==='Variasi '+(+a+1))))}};
+ $('#edadd').onclick=()=>{const f0=EDIT.vars[0]||{};const v0=e.vars.find(x=>x.vid===f0.vid)||{};EDIT.add.push({nama:f0.nama||e.name,alias:'',tempat:f0.tempat||'',tgl:f0.tgl||'',alamat:'',src:SRC[EDIT.ent.sub].includes(v0.src)?v0.src:SRC[EDIT.ent.sub][0],ref:f0.ref||''});edDraw()};
+ box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{EDIT.add.splice(+b.dataset.rm,1);edDraw()});
+ $('#edrst').onclick=()=>{EDIT=edInit(e);edDraw()};
+}
 function changeForm(kind){
  const aml=roleKey==='aml';
  if(kind==='master'){
@@ -586,10 +620,7 @@ function changeForm(kind){
  const opts=ENT.filter(ok);
  $('#ib').innerHTML=`<div class="split"><div class="card"><form id="cf" novalidate>
   <div class="fld"><label>Entitas (ID Watchlist) <i>*</i></label><input name="id" list="entl" placeholder="Ketik ID atau nama…" value="${esc(pre||'')}" autocomplete="off"><datalist id="entl">${opts.map(e=>`<option value="${e.id}">${esc(e.name)} · ${e.cat} · ${esc(e.sub)}</option>`).join('')}</datalist></div>
-  ${kind==='update'?`<div class="fgrid"><div class="fld"><label>Subkategori baru</label><select name="sub"><option value="">Tidak berubah</option>${ROLE.scope.filter(x=>!['Delisting Akhir','Delisting Rejection List'].includes(x)).map(x=>`<option>${esc(x)}</option>`).join('')}</select></div>
-   <div class="fld"><label>CIF baru</label><input name="cif" placeholder="Kosongkan jika tidak berubah"></div></div>
-   <div class="fld"><label>Tambah variasi alamat</label><input name="alamat" placeholder="Opsional: alamat dari sumber baru"></div>
-   <div class="fld"><label>Alasan perubahan <i>*</i></label><input name="r"></div>`
+  ${kind==='update'?`<div class="fld"><label>Alasan perubahan <i>*</i></label><input name="r" placeholder="mis. Koreksi data dari surat terbaru"></div>`
   :`${kind==='delist'?'<div class="fld"><label>Variasi &amp; sumber yang didelisting <i>*</i></label><div id="vsel" class="var" style="margin:0"><small style="color:var(--mute)">Pilih entitas dulu</small></div><input type="hidden" name="vids"></div><div id="flowinfo"></div>':''}<div class="fld"><label>Alasan ${kind==='delist'?'delisting':'pengembalian'} <i>*</i></label><select name="r"><option value="">Pilih alasan</option>${(kind==='delist'?['Surat pencabutan dari sumber','Salah identitas','Putusan pengadilan','Lainnya']:['Pengajuan ulang dari sumber','Koreksi delisting','Lainnya']).map(x=>`<option>${x}</option>`).join('')}</select></div>`}
   <div class="fld"><label>No. surat / referensi <i>*</i></label><input name="ref" placeholder="mis. ND-901/UKA/2026"></div>
   <div class="fld"><label>Catatan</label><textarea name="n"></textarea></div>
@@ -610,7 +641,9 @@ function changeForm(kind){
    $('#flowinfo').innerHTML=!n?'':e.cat==='Rejection List'?`<div class="alert i">${ic('db')}<span><b>${n} variasi → Negative List (Delisting Rejection List)</b>Dibuat sebagai penambahan baru di Negative List dengan sumber ${[...new Set(e.vars.filter(v=>ch.includes(v.vid)).map(v=>'"DELISTING - '+esc(v.src)+'"'))].join(', ')}. ${all?'Record '+e.id+' berstatus Delisted.':'Variasi lain tetap aktif di Rejection List (partial).'}</span></div>`
     :`<div class="alert w">${ic('warn')}<span><b>${n} variasi → Delisting Akhir</b>${all?'Record '+e.id+' keluar dari Negative List dan tidak ikut patching.':'Variasi terpilih dipisah jadi record baru di Delisting Akhir; sisanya tetap di Negative List.'}</span></div>`};
   box.onchange=ev=>{if(ev.target.dataset.all!==undefined)box.querySelectorAll('input[value]:not(:disabled)').forEach(x=>x.checked=ev.target.checked);sync()};sync()};
- f.id.oninput=()=>{prev();vsel()};prev();vsel();bindChange(kind,ok);
+ if(kind==='update')$('#ib').insertAdjacentHTML('beforeend','<div class="card" id="edg" style="margin-top:16px"></div>');
+ const edr=()=>{if(kind!=='update')return;const e=ENT.find(x=>x.id===f.id.value.trim().toUpperCase());if(!e||!ok(e)||openSub(e)){EDIT=null;$('#edg').innerHTML='<div class="empty">'+ic('db')+'<p>Pilih entitas untuk memuat seluruh kolomnya di sini.</p></div>';return}if(!EDIT||EDIT.id!==e.id)EDIT=edInit(e);edDraw()};
+ f.id.oninput=()=>{prev();vsel();edr()};prev();vsel();edr();bindChange(kind,ok);
 }
 function bindChange(kind,ok){
  const f=$('#cf'),aml=roleKey==='aml';
@@ -619,11 +652,11 @@ function bindChange(kind,ok){
   if(!draft)need.forEach(n=>{if(!f[n].value.trim())bad(n,'Wajib diisi')});
   let e=null;if(kind!=='master'){e=ENT.find(x=>x.id===f.id.value.trim().toUpperCase());if(f.id.value.trim()&&!e)bad('id','ID tidak ditemukan');else if(e&&!ok(e))bad('id','Status/scope tidak sesuai');else if(e&&openSub(e))bad('id','Sudah ada pengajuan berjalan: '+openSub(e).id);if(draft&&!e)bad('id','Pilih entitas dulu')}
   if(kind==='delist'&&e&&!draft&&!f.vids.value)bad('vids','Pilih minimal satu variasi');
-  if(kind==='update'&&e&&!draft&&!f.sub.value&&!f.cif.value.trim()&&!f.alamat.value.trim())bad('sub','Isi minimal satu perubahan');
+  if(kind==='update'&&e&&!draft){if(!EDIT||!edChanges().length){good=false;toast('Belum ada kolom yang diubah')}else if(EDIT.add.some(a=>!a.nama.trim()||!a.src)){good=false;toast('Variasi baru wajib punya nama dan sumber')}}
   if(!good)return toast('Masih ada field yang perlu diperbaiki');
-  const data=kind==='master'?{mt:f.mt.value,c:f.c.value,n:f.n.value.trim()}:kind==='update'?{sub:f.sub.value,cif:f.cif.value.trim(),alamat:f.alamat.value.trim(),r:f.r.value}:kind==='delist'?{r:f.r.value,vids:f.vids.value.split(',').filter(Boolean).map(Number)}:{r:f.r.value};
-  const s={id:newId(),type:STYPE[kind],title:STYPE[kind]+' · '+(e?e.id+' '+e.name+(kind==='delist'?' ('+data.vids.length+'/'+live(e).length+' variasi)':''):data.n),unit:aml?'AML Group':'Unit Kerja A',maker:ROLE.name,created:new Date(),
-   stage:draft?0:aml?3:1,status:draft?'Draft':aml?'AML Review':'Menunggu Checker',n:1,err:0,warn:0,letters:[f.ref.value||'—'],apply:{kind,id:e?.id,data}};
+  const data=kind==='master'?{mt:f.mt.value,c:f.c.value,n:f.n.value.trim()}:kind==='update'?{chg:EDIT?edChanges():[],ent:EDIT?{...EDIT.ent}:{},vars:EDIT?EDIT.vars.map(v=>({...v})):[],add:EDIT?EDIT.add.map(a=>({...a})):[],r:f.r.value}:kind==='delist'?{r:f.r.value,vids:f.vids.value.split(',').filter(Boolean).map(Number)}:{r:f.r.value};
+  const s={id:newId(),type:STYPE[kind],title:STYPE[kind]+' · '+(e?e.id+' '+e.name+(kind==='update'?' ('+data.chg.length+' perubahan)':'')+(kind==='delist'?' ('+data.vids.length+'/'+live(e).length+' variasi)':''):data.n),unit:aml?'AML Group':'Unit Kerja A',maker:ROLE.name,created:new Date(),
+   stage:draft?0:aml?3:1,status:draft?'Draft':aml?'AML Review':'Menunggu Checker',n:1,err:0,warn:0,letters:[f.ref.value||'—'],apply:{kind,id:e?.id,data}};if(kind==='update')EDIT=null;
   SUBS.unshift(s);log(draft?'Draft saved':'Submitted',s.id,s.title);toast(draft?'Draft disimpan di My Submission':s.id+' diajukan → '+s.status);selSub=subOpen=s.id;pre=null;msf='all';go('mysub')};
  f.onsubmit=ev=>{ev.preventDefault();make(false)};$('#cdr').onclick=()=>make(true);
 }
@@ -650,11 +683,16 @@ function single(){
 }
 function sampleRows(){const R=[];const ex=ENT.find(e=>e.sub==='Scammer');
  for(let i=0;i<12;i++){const c=i<8?'Scammer':'Blokir';R.push({cat:c,nama:pick(NAMES),nik:'3'+String(Math.floor(rnd()*1e15)).padStart(15,'0'),cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):'',rek:rnd()<.5?'0'+Math.floor(rnd()*1e14):'',tempat_lahir:pick(CITIES),tgl_lahir:'198'+i%10+'-0'+(1+i%9)+'-1'+i%9,alamat:'Jl. Kenanga No.'+(i+3),sumber:pick(SRC[c].slice(0,4)),no_surat:'ND-'+(900+i)+'/UKA/2026',tgl_lapor:'2026-11-1'+i%9,kode:'',alias:'',kwn:'Indonesia'})}
- R[11].nik=R[0].nik;R[11].cat=R[0].cat;R[2].nik='3271'+'0012';R[5].no_surat='';R[7].nik=ex.key;R[7].nama=ex.name+' S.';R[9].sumber='';R[10].mm=true;return R}
+ R[11]={...R[0],alamat:'Jl. Anggrek No.21, Depok',sumber:R[0].sumber,no_surat:R[0].no_surat};R[4]={...R[3]};R[2].nik='3271'+'0012';R[5].no_surat='';R[7].nik=ex.key;R[7].nama=ex.name+' S.';R[9].sumber='';R[10].mm=true;return R}
 function validate(r){const issues={};
  MAND[r.cat].forEach(k=>{if(!String(r[k]||'').trim())issues[k]=['e','Wajib untuk '+r.cat]});
  if(r.nik&&!/^\d{16}$/.test(r.nik))issues.nik=['e','NIK harus 16 digit'];
- r.dup=false;if(r.nik&&!issues.nik){const twin=BULK&&BULK.rows.findIndex(x=>x!==r&&x.nik===r.nik&&x.cat===r.cat);if(twin>=0){issues.nik=['e','Duplikat dalam file (sama dengan baris '+(twin+1)+')'];r.dup=true}else{const d=ENT.find(e=>e.sub===r.cat&&e.key===r.nik);if(d){issues.nik=['w','Duplikat: key sudah ada di '+d.id+' → masuk sebagai variasi'];r.dup=true}}}
+ r.dup=false;r.act='new';r.actRef='';
+ const rk=keyOfSrc(r.sumber)==='Kode Dugaan'?r.kode:r.nik;
+ if(rk&&!issues.nik&&BULK){const idx=BULK.rows.indexOf(r),twin=BULK.rows.findIndex((x,i)=>i<idx&&x.cat===r.cat&&(keyOfSrc(x.sumber)==='Kode Dugaan'?x.kode:x.nik)===rk);
+  if(twin>=0){const t=BULK.rows[twin],same=['nama','tgl_lahir','tempat_lahir','alamat','sumber','no_surat'].every(k=>(t[k]||'')===(r[k]||''));
+   if(same){issues.nik=['e','Duplikat persis dengan baris '+(twin+1)];r.dup=true}else{r.act='varrow';r.actRef='baris '+(twin+1)}}
+  else{const d=ENT.find(e=>e.sub===r.cat&&e.key===rk);if(d){r.act='var';r.actRef=d.id;issues.nik=['w','Key sudah ada di '+d.id+' → ditambahkan sebagai variasi']}}}
  if(r.mm&&!issues.tgl_lahir)issues.tgl_lahir=['w','Mismatch dengan Big Data (1988-04-12)'];
  if(r.sumber&&SRC[r.cat]&&!SRC[r.cat].includes(r.sumber)&&!issues.sumber)issues.sumber=['e','Sumber tidak terdaftar untuk '+r.cat];
  if(!SRC[r.cat])issues.cat=['e','Subkategori tidak dikenal'];
@@ -670,13 +708,13 @@ function bulk(){
   $('#tpl').onclick=()=>showCsv('Template_Watchlist_BRI.csv','SUBKATEGORI;'+Object.values(FIELDS).join(';').toUpperCase());
   return}
  BULK.rows.forEach(validate);
- const c={Valid:0,Warning:0,Error:0,dup:0};BULK.rows.forEach(r=>{c[r.st]++;if(r.dup)c.dup++});
+ const c={Valid:0,Warning:0,Error:0,dup:0,nw:0,nv:0};BULK.rows.forEach(r=>{c[r.st]++;if(r.dup)c.dup++;if(r.st!=='Error'){if(r.act==='new')c.nw++;else c.nv++}});
  const keys=['cat',...Object.keys(FIELDS).filter(k=>k!=='kode'&&k!=='alias')];
  $('#ib').innerHTML=stepper(2)+`<div class="card"><div class="ch"><div><h2>Preview &amp; validasi · ${esc(BULK.name)}</h2><p>Klik sel untuk memperbaiki langsung. Validasi berjalan otomatis.</p></div><div class="sp"></div><button class="btn" id="erep" ${c.Error+c.Warning?'':'disabled'}>${ic('dl')}Unduh laporan error</button></div>
-  <div class="sumg">${[['all','Total record',BULK.rows.length,'blue2','sky'],['Valid','Valid',c.Valid,'ok','okb'],['Warning','Warning',c.Warning,'warn','warnb'],['Error','Error',c.Error,'err','errb'],['dup','Duplikat',c.dup,'warn','warnb']].map(([k,l,n,fg,bg])=>`<div data-vf="${k}" class="${vf===k?'act':''}" style="background:var(--${bg});color:var(--${fg})"><small>${l}</small><b>${n}</b></div>`).join('')}</div>
+  <div class="alert i">${ic('db')}<span><b>${c.nw} entitas baru · ${c.nv} variasi baru</b>Baris dengan key yang sudah ada di database (atau di baris sebelumnya) otomatis jadi variasi entitas tersebut.</span></div><div class="sumg">${[['all','Total record',BULK.rows.length,'blue2','sky'],['Valid','Valid',c.Valid,'ok','okb'],['Warning','Warning',c.Warning,'warn','warnb'],['Error','Error',c.Error,'err','errb'],['dup','Duplikat',c.dup,'warn','warnb']].map(([k,l,n,fg,bg])=>`<div data-vf="${k}" class="${vf===k?'act':''}" style="background:var(--${bg});color:var(--${fg})"><small>${l}</small><b>${n}</b></div>`).join('')}</div>
   ${c.Error?`<div class="alert e">${ic('warn')}<span><b>${c.Error} baris masih error</b>Perbaiki dulu sebelum submit. Draft tetap bisa disimpan.</span></div>`:c.Warning?`<div class="alert w">${ic('warn')}<span><b>${c.Warning} warning perlu ditinjau</b>Variasi key dan mismatch Big Data akan direview AML.</span></div>`:`<div class="alert i">${ic('ok')}<span><b>Semua baris valid</b>Siap diajukan.</span></div>`}
-  <div class="tw"><table class="x" id="pv"><thead><tr><th class="rn">#</th><th>VALIDASI</th>${keys.map(k=>`<th>${k==='cat'?'SUBKATEGORI':FIELDS[k].toUpperCase()}</th>`).join('')}<th></th></tr></thead><tbody>
-  ${BULK.rows.map((r,i)=>(vf==='all'||r.st===vf||(vf==='dup'&&r.dup))?`<tr data-i="${i}"><td class="rn">${i+1}</td><td title="${esc(Object.entries(r.iss).map(([k,v])=>(FIELDS[k]||'Subkategori')+': '+v[1]).join('\n'))}">${vBadge(r.st)}</td>${keys.map(k=>{const is=r.iss[k];return `<td contenteditable="true" data-k="${k}" class="${is?(is[0]==='e'?'ce':'cw'):''}" title="${is?esc(is[1]):''}">${esc(r[k]||'')}</td>`}).join('')}<td><button class="link" data-del="${i}" title="Hapus baris">${ic('x')}</button></td></tr>`:'').join('')}
+  <div class="tw"><table class="x" id="pv"><thead><tr><th class="rn">#</th><th>VALIDASI</th><th>TINDAKAN</th>${keys.map(k=>`<th>${k==='cat'?'SUBKATEGORI':FIELDS[k].toUpperCase()}</th>`).join('')}<th></th></tr></thead><tbody>
+  ${BULK.rows.map((r,i)=>(vf==='all'||r.st===vf||(vf==='dup'&&r.dup))?`<tr data-i="${i}"><td class="rn">${i+1}</td><td title="${esc(Object.entries(r.iss).map(([k,v])=>(FIELDS[k]||'Subkategori')+': '+v[1]).join('\n'))}">${vBadge(r.st)}</td><td>${actBadge(r)}</td>${keys.map(k=>{const is=r.iss[k];return `<td contenteditable="true" data-k="${k}" class="${is?(is[0]==='e'?'ce':'cw'):''}" title="${is?esc(is[1]):''}">${esc(r[k]||'')}</td>`}).join('')}<td><button class="link" data-del="${i}" title="Hapus baris">${ic('x')}</button></td></tr>`:'').join('')}
   </tbody></table></div>
   <div class="pg"><span>Arahkan kursor ke sel berwarna untuk melihat penjelasan.</span><div class="pb"><button class="btn" id="bc" style="height:38px">Batal</button><button class="btn" id="bd" style="height:38px">Simpan draft</button><button class="btn pri" id="bs" style="height:38px" ${c.Error?'disabled':''}>Submit ke Checker</button></div></div></div>`;
  document.querySelectorAll('[data-vf]').forEach(ch=>{ch.onclick=()=>{vf=ch.dataset.vf;bulk()}});
@@ -721,8 +759,7 @@ function subData(s){
  const a=s.apply;
  if(a&&a.kind!=='master'){const e=ENT.find(x=>x.id===a.id);if(!e)return '<div class="empty">Entitas tidak ditemukan.</div>';const d=a.data||{};
   const head=`<div class="ch"><div><h2>Data yang diajukan</h2><p>${esc(s.type)} untuk ${e.id} · ${esc(e.name)} · ${e.cat} · ${esc(e.sub)}</p></div></div>`;
-  if(a.kind==='update'){const rows=[['Subkategori',e.sub,d.sub],['CIF',e.cif,d.cif],['Alamat (variasi baru)',null,d.alamat]];
-   return head+`<div class="tw"><table class="x"><thead><tr><th>FIELD</th><th>NILAI SAAT INI</th><th>NILAI DIAJUKAN</th></tr></thead><tbody>${rows.map(([f,b,n])=>`<tr><td>${f}</td>${nul(b)}${n?`<td><b style="color:var(--ok)">${esc(n)}</b></td>`:'<td style="color:var(--mute)">Tidak berubah</td>'}</tr>`).join('')}<tr><td>Alasan</td><td colspan="2">${esc(d.r||'')}</td></tr></tbody></table></div>`}
+  if(a.kind==='update'){const C=d.chg||[];return head+`<div class="tw" style="max-height:none"><table class="x"><thead><tr><th>LEVEL</th><th>KOLOM</th><th>SEBELUM</th><th>SESUDAH</th></tr></thead><tbody>${C.map(c=>`<tr class="${c.k==='_add'?'newv':''}"><td>${esc(c.lvl)}</td><td>${esc(c.f)}</td>${c.o?`<td><s style="color:var(--err)">${esc(c.o)}</s></td>`:'<td class="n">NULL</td>'}<td><b style="color:var(--ok)">${esc(c.n||'NULL')}</b></td></tr>`).join('')||'<tr><td colspan="4">Tidak ada perubahan</td></tr>'}</tbody></table></div><dl class="kv" style="margin-top:12px"><dt>Total perubahan</dt><dd>${C.length} kolom${(d.add||[]).length?' (termasuk '+d.add.length+' variasi baru)':''}</dd><dt>Alasan</dt><dd>${esc(d.r||'')}</dd></dl>`}
   const vs=a.kind==='delist'?e.vars.filter(v=>(d.vids||[]).includes(v.vid)||(s.status==='Approved'&&v.del)):e.vars;
   const tgt=a.kind==='react'?'Aktif kembali di '+e.origin:e.cat==='Rejection List'||e.origin&&a.kind==='delist'&&e.cat==='Negative List'&&false?'':'';
   return head+`<div class="tw"><table class="x"><thead><tr><th class="rn">#</th><th>NAMA</th><th>ALIAS</th><th>TEMPAT / TGL LAHIR</th><th>ALAMAT</th><th>SUMBER SAAT INI</th><th>NO. SURAT</th><th>HASIL SETELAH APPROVED</th></tr></thead><tbody>${vs.map((v,i)=>`<tr><td class="rn">${i+1}</td><td>${esc(v.nama)}</td>${nul(v.alias)}<td>${esc(v.tempat)}, ${dstr(v.tgl)}</td><td>${esc(v.alamat)}</td><td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${a.kind==='react'?'Aktif kembali di '+esc(e.origin||'')+' (Rejection List)':e.cat==='Rejection List'?'Negative List · sumber <b>DELISTING - '+esc(v.src)+'</b>':'Pindah ke <b>Delisting Akhir</b>'}</td></tr>`).join('')}</tbody></table></div>
@@ -733,8 +770,8 @@ function subData(s){
  const P=25,pages=Math.max(1,Math.ceil(F.length/P));if(sdpg>pages)sdpg=pages;const sl=F.slice((sdpg-1)*P,sdpg*P);
  return `<div class="ch"><div><h2>Data yang diajukan</h2><p>Seluruh ${fmt(R.length)} record dan semua kolom yang diinput</p></div><div class="sp"></div>${s.err+s.warn?`<button class="btn sm" id="sderr">${ic('dl')}Laporan error</button>`:''}<button class="btn sm" id="sdexp">${ic('dl')}Export data</button></div>
   <div class="bar2"><label class="search" style="flex:0 1 380px">${ic('search')}<input id="sdq" placeholder="Cari nama, NIK, sumber…" value="${esc(sdq)}"></label>${[['all','Semua'],['Valid','Valid'],['Warning','Warning'],['Error','Error']].map(([k,l])=>`<span class="chip ${sdf===k?'act':''}" data-sdf="${k}">${l} ${c[k]}</span>`).join('')}</div>
-  <div class="tw" style="max-height:none"><table class="x"><thead><tr><th class="rn">#</th><th>VALIDASI</th><th>KETERANGAN</th>${keys.map(k=>`<th>${k==='cat'?'SUBKATEGORI':FIELDS[k].toUpperCase()}</th>`).join('')}</tr></thead><tbody>
-  ${sl.map(({r,i})=>`<tr><td class="rn">${i+1}</td><td>${vBadge(r.st||'Valid')}</td><td style="font-size:12px;color:var(--${r.st==='Error'?'err':r.st==='Warning'?'warn':'mute'})">${esc(Object.entries(r.iss||{}).map(([k,v])=>(FIELDS[k]||'Subkategori')+': '+v[1]).join('; ')||'—')}</td>${keys.map(k=>{const is=(r.iss||{})[k];const v=r[k];return v?`<td class="${is?(is[0]==='e'?'ce':'cw'):''}">${esc(v)}</td>`:'<td class="n">NULL</td>'}).join('')}</tr>`).join('')}</tbody></table></div>
+  <div class="tw" style="max-height:none"><table class="x"><thead><tr><th class="rn">#</th><th>VALIDASI</th><th>TINDAKAN</th><th>KETERANGAN</th>${keys.map(k=>`<th>${k==='cat'?'SUBKATEGORI':FIELDS[k].toUpperCase()}</th>`).join('')}</tr></thead><tbody>
+  ${sl.map(({r,i})=>`<tr><td class="rn">${i+1}</td><td>${vBadge(r.st||'Valid')}</td><td>${actBadge({act:'new',...r})}</td><td style="font-size:12px;color:var(--${r.st==='Error'?'err':r.st==='Warning'?'warn':'mute'})">${esc(Object.entries(r.iss||{}).map(([k,v])=>(FIELDS[k]||'Subkategori')+': '+v[1]).join('; ')||'—')}</td>${keys.map(k=>{const is=(r.iss||{})[k];const v=r[k];return v?`<td class="${is?(is[0]==='e'?'ce':'cw'):''}">${esc(v)}</td>`:'<td class="n">NULL</td>'}).join('')}</tr>`).join('')}</tbody></table></div>
   <div class="pg"><span>Menampilkan ${F.length?fmt((sdpg-1)*P+1):0}–${fmt(Math.min(sdpg*P,F.length))} dari ${fmt(F.length)} record</span><div class="pb"><button data-sdg="${sdpg-1}" ${sdpg===1?'disabled':''}>‹</button><span style="padding:0 8px">Hal ${sdpg} / ${pages}</span><button data-sdg="${sdpg+1}" ${sdpg===pages?'disabled':''}>›</button></div></div>`}
 function subFull(mode){
  const s=SUBS.find(x=>x.id===subOpen),my=mode==='mysub';
@@ -750,10 +787,19 @@ function subFull(mode){
   const er=$('#sderr');if(er)er.onclick=()=>{const L=['BARIS;KOLOM;TIPE;PESAN;NILAI'];subRows(s).forEach((r,i)=>Object.entries(r.iss||{}).forEach(([k,v])=>L.push([i+1,FIELDS[k]||'Subkategori',v[0]==='e'?'ERROR':'WARNING',v[1],r[k]||''].join(';'))));showCsv(s.id+'_laporan_error.csv',L.join('\n'))}};
  draw();
 }
-function applySub(s){const a=s.apply;if(!a)return;
+function applySub(s){const a=s.apply;if(!a){if(s.rows&&s.rows[0]&&s.rows[0].iss!==undefined&&s.rows.some(r=>r.act)){const made={};s.rows.forEach((r,i)=>{if(r.st==='Error')return;
+   const v={vid:VID++,nama:r.nama,alias:r.alias||null,tempat:r.tempat_lahir||null,tgl:r.tgl_lahir?new Date(r.tgl_lahir+'T00:00'):new Date(1980,0,1),alamat:r.alamat||null,src:r.sumber,ref:r.no_surat,tglLapor:new Date()};
+   const tgt=r.act==='var'?ENT.find(e=>e.id===r.actRef):r.act==='varrow'?made[+r.actRef.replace(/\D/g,'')-1]:null;
+   if(tgt){tgt.vars.push(v);tgt.updated=new Date();tgt.hist.push({t:new Date(),a:'Variation added',u:'via '+s.id,r:'Dari '+r.sumber})}
+   else{const kd=keyOfSrc(r.sumber)==='Kode Dugaan';const ne={id:newEid(),cat:catOf(r.cat),sub:r.cat,status:'Active',unit:s.unit,key:kd?r.kode:r.nik,nik:r.nik||null,cif:r.cif||null,rek:r.rek||null,kwn:r.kwn||null,created:new Date(),updated:new Date(),vars:[v],name:r.nama,hist:[{t:new Date(),a:'Created',u:'via '+s.id,r:'Bulk upload '+s.title}]};ENT.push(ne);made[i]=ne}});
+   const nw=Object.keys(made).length;log('Data applied',s.id,nw+' entitas baru, '+(s.rows.filter(r=>r.st!=='Error').length-nw)+' variasi baru','Berhasil')}return}
  if(a.kind==='master'){const d=a.data;if(d.mt==='src'){(SRC[d.c]||(SRC[d.c]=[])).push(d.n)}else{const c=SUBC[d.c]?d.c:catOf(d.c);SUBC[c].push(d.n);SRC[d.n]=[]}SOURCES=[...new Set(Object.values(SRC).flat())];return}
  const e=ENT.find(x=>x.id===a.id);if(!e)return;const d=a.data;
- if(a.kind==='update'){const chg=[];if(d.sub)chg.push(['Subkategori',e.sub,d.sub]);if(d.cif)chg.push(['CIF',e.cif||'NULL',d.cif]);if(d.alamat)chg.push(['Alamat (variasi baru)','—',d.alamat]);log('Updated',e.id,'via '+s.id,'Berhasil',chg);if(d.sub)e.sub=d.sub;if(d.cif)e.cif=d.cif;if(d.alamat)e.vars.push({...e.vars[0],alamat:d.alamat,src:'Pengajuan '+s.id,ref:s.letters[0]})}
+ if(a.kind==='update'){const D=d.chg||[];log('Updated',e.id,'via '+s.id,'Berhasil',D.map(c=>[c.lvl+' · '+c.f,c.o||'NULL',c.n||'NULL']));
+  if(d.ent){['sub','nik','cif','rek','kwn'].forEach(k=>{if(d.ent[k]!==undefined)e[k]=d.ent[k]||null});e.cat=catOf(e.sub)||e.cat}
+  (d.vars||[]).forEach(w=>{const v=e.vars.find(x=>x.vid===w.vid);if(!v)return;['nama','alias','tempat','alamat','ref'].forEach(k=>v[k]=w[k]||null);if(w.tgl)v.tgl=new Date(w.tgl+'T00:00')});
+  (d.add||[]).forEach(x=>e.vars.push({vid:VID++,nama:x.nama,alias:x.alias||null,tempat:x.tempat||null,tgl:x.tgl?new Date(x.tgl+'T00:00'):e.vars[0].tgl,alamat:x.alamat||null,src:x.src,ref:x.ref||s.letters[0],tglLapor:new Date()}));
+  e.name=e.vars[0].nama;}
  if(a.kind==='delist'){const before=e.status,bsub=e.sub,srcs=e.vars.filter(v=>d.vids.includes(v.vid)).map(v=>v.src);const ne=delistVars(e,d.vids,d.r,'via '+s.id);log('Delisted',e.id,d.r,'Berhasil',[['Status',before,e.status],...(e.cat==='Delisting Akhir'?[['Kategori',bsub,'Delisting Akhir']]:srcs.map(z=>['Sumber → '+(ne?.id||''),z,'DELISTING - '+z]))]);if(ne&&ne!==e){s.result=ne.id;log('Created',ne.id,ne.cat+' · dari '+e.id)}return}
  if(a.kind==='react'){restoreToRejection(e,d.r,'via '+s.id);log('Dikembalikan ke Rejection',e.id,d.r,'Berhasil',[['Status '+e.id,'Active','Delisted'],['Status '+e.origin,'Delisted','Active']]);return}
  e.updated=new Date();e.hist.push({t:new Date(),a:'Updated',u:'via '+s.id,r:d.r||''})}
