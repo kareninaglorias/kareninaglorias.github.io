@@ -338,7 +338,7 @@ let SUBS=[
 {id:'SUB-2611-008',type:'Ubah data',title:'Update alamat DTTOT',unit:'AML Group',maker:'Rina A.',created:daysAgo(8),stage:0,status:'Draft',n:3,err:0,warn:1,letters:['B-2190/PPATK/2026']},
 ];
 const newId=()=>'SUB-2611-'+String(15+SUBS.length).padStart(3,'0');
-const assignAll=()=>[...ENT].sort((a,b)=>a.created-b.created).forEach(e=>{combos(e);e.vars.forEach(v=>idsOf(e,v))});
+const assignAll=()=>[...ENT].sort((a,b)=>a.created-b.created).forEach(e=>{combos(e)});
 const STAGES=['Maker','Checker','Signer','AML Review','Ready'];
 let AUDIT=[];
 ENT.forEach(e=>e.hist.forEach(h=>AUDIT.push({t:h.t,user:h.u,act:h.a,obj:e.id+' · '+e.sub,r:h.r})));
@@ -505,13 +505,14 @@ function vWdm(){
 }
 const DCOLS=['ID WATCHLIST','ID KATEGORI','ID SUBKATEGORI','KATEGORI','SUBKATEGORI','PRIMARY KEY','NAMA','ALIAS NAMA','NIK','KODE DUGAAN','CIF','NO. REKENING','TEMPAT LAHIR','TANGGAL LAHIR','ALAMAT','KEWARGANEGARAAN','SUMBER DATA','NO. SURAT','TGL DILAPORKAN','PIC GROUP','STATUS'];
 function rowSub(e,src){return e.cat==='Delisting Akhir'?'Delisting Akhir':(srcSub(src)&&catOf(srcSub(src))===e.cat?srcSub(src):e.sub)}
-function regKey(e,v){return [e.id,v.src,v.nama,+v.tgl,v.tempat,v.alamat].join('|')}
-function idsOf(e,v){const k=regKey(e,v);if(!REG[k]){const sub=rowSub(e,v.src);REG[k]={kat:nextId(CATCODE[e.cat]||'REJ'),sub:nextId(SUBCODE[sub]||'XXX'),subName:sub}}return REG[k]}
+function regKey(e,v){return [e.id,v.src,...(v._k||[v.vid,v.vid,v.vid,v.vid])].join('|')}
+function idsOf(e,v){const k=regKey(e,v);if(!REG[k]){const sub=rowSub(e,v.src);REG[k]={kat:nextId(CATCODE[e.cat]||'REJ'),sub:nextId(SUBCODE[sub]||'XXX')}}return {...REG[k],subName:rowSub(e,v.src)}}
+function idsOfVar(e,v){const r=combos(e).find(r=>r.src===v.src&&r.nama===v.nama&&+r.tgl===+v.tgl&&r.tempat===v.tempat&&r.alamat===v.alamat);return r||idsOf(e,v)}
 function combos(e){const L=live(e).length?live(e):e.vars,out=[];
  [...new Set(L.map(v=>v.src))].forEach(src=>{const G=L.filter(v=>v.src===src),u=f=>[...new Map(G.map(v=>[f(v),v])).values()];
-  u(v=>v.nama).forEach(n=>u(v=>+v.tgl).forEach(t=>u(v=>v.tempat).forEach(p=>u(v=>v.alamat).forEach(a=>{const r={nama:n.nama,alias:n.alias,tgl:t.tgl,tempat:p.tempat,alamat:a.alamat,src,ref:[...new Set([n.ref,t.ref,p.ref,a.ref])].join(', '),tglLapor:[n,t,p,a].reduce((m,v)=>v.tglLapor>m?v.tglLapor:m,n.tglLapor)};Object.assign(r,idsOf(e,r));out.push(r)}))))});
+  u(v=>v.nama).forEach(n=>u(v=>+v.tgl).forEach(t=>u(v=>v.tempat).forEach(p=>u(v=>v.alamat).forEach(a=>{const r={nama:n.nama,alias:n.alias,tgl:t.tgl,tempat:p.tempat,alamat:a.alamat,src,ref:[...new Set([n.ref,t.ref,p.ref,a.ref])].join(', '),tglLapor:[n,t,p,a].reduce((m,v)=>v.tglLapor>m?v.tglLapor:m,n.tglLapor),_k:[n.vid,t.vid,p.vid,a.vid]};Object.assign(r,idsOf(e,r));out.push(r)}))))});
  return out}
-function entRowHTML(e,v,idx,lab){const kd=keyOf(e)==='Kode Dugaan';return `<tr class="${hlId===e.id?'hl':''}"><td class="rn">${idx}</td><td><b style="color:var(--blue2)">${e.id}</b></td>${(()=>{const I=v.kat?v:idsOf(e,v);return `<td>${I.kat}</td><td><b>${I.sub}</b></td><td>${e.cat}</td><td>${esc(I.subName||e.sub)}</td>`})()}<td>${esc(e.key)}</td><td>${esc(v.nama)}</td>${nul(v.alias)}${nul(e.nik)}${nul(kd?e.key:null)}${nul(e.cif)}${nul(e.rek)}${nul(v.tempat)}<td>${dstr(v.tgl)}</td>${nul(v.alamat)}${nul(e.kwn)}<td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${dstr(v.tglLapor)}</td><td>${esc(e.unit)}</td><td>${stBadge(v.del?'Delisted':e.status)}</td></tr>`}
+function entRowHTML(e,v,idx,lab){const kd=keyOf(e)==='Kode Dugaan';return `<tr class="${hlId===e.id?'hl':''}"><td class="rn">${idx}</td><td><b style="color:var(--blue2)">${e.id}</b></td>${(()=>{const I=v.kat?v:idsOfVar(e,v);return `<td>${I.kat}</td><td><b>${I.sub}</b></td><td>${e.cat}</td><td>${esc(I.subName||e.sub)}</td>`})()}<td>${esc(e.key)}</td><td>${esc(v.nama)}</td>${nul(v.alias)}${nul(e.nik)}${nul(kd?e.key:null)}${nul(e.cif)}${nul(e.rek)}${nul(v.tempat)}<td>${dstr(v.tgl)}</td>${nul(v.alamat)}${nul(e.kwn)}<td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${dstr(v.tglLapor)}</td><td>${esc(e.unit)}</td><td>${stBadge(v.del?'Delisted':e.status)}</td></tr>`}
 function entTable(e,mode,maxH){const R=mode==='var'?e.vars.map((v,j)=>[v,'v'+(j+1)]):combos(e).map((v,j)=>[v,'k'+(j+1)]);
  return `<div class="tw" style="${maxH?'max-height:'+maxH:'max-height:none'}"><table class="x"><thead><tr><th class="rn">#</th>${DCOLS.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${R.map(([v,l],i)=>entRowHTML(e,v,i+1,R.length>1?l:'')).join('')}</tbody></table></div>`}
 function entActions(e){const os=openSub(e);return roleKey==='checker'||os?'':[e.cat!=='Delisting Akhir'&&e.status!=='Delisted'&&!e.restored?`<button class="btn sm" data-sub="update">${ic('in')}Ajukan perubahan</button>`:'',canDelist(e)?`<button class="btn sm dan" data-sub="delist">Ajukan delisting</button>`:'',canRestore(e)?`<button class="btn sm" data-sub="react">↩ Kembalikan ke Rejection List</button>`:''].join('')}
@@ -523,7 +524,7 @@ function entFull(){const e=ENT.find(x=>x.id===entOpen);const n=emode==='var'?e.v
  ${entTable(e,emode)}</div>`;
  $('#eback').onclick=()=>{entOpen=null;vWdm()};
  $('#emt').onclick=ev=>{const b=ev.target.closest('button');if(b){emode=b.dataset.m;entFull()}};
- $('#eexp').onclick=()=>{const R=emode==='var'?e.vars:combos(e);showCsv(e.id+'_'+(emode==='var'?'variation':'combination')+'.csv',[DCOLS.join(';'),...R.map(v=>{const I=v.kat?v:idsOf(e,v);return [e.id,I.kat,I.sub,e.cat,I.subName,e.key,v.nama,v.alias||'',e.nik||'',keyOf(e)==='Kode Dugaan'?e.key:'',e.cif||'',e.rek||'',v.tempat||'',isoD(v.tgl),v.alamat||'',e.kwn||'',v.src,v.ref,isoD(v.tglLapor),e.unit,e.status].join(';')})].join('\n'))};
+ $('#eexp').onclick=()=>{const R=emode==='var'?e.vars:combos(e);showCsv(e.id+'_'+(emode==='var'?'variation':'combination')+'.csv',[DCOLS.join(';'),...R.map(v=>{const I=v.kat?v:idsOfVar(e,v);return [e.id,I.kat,I.sub,e.cat,I.subName,e.key,v.nama,v.alias||'',e.nik||'',keyOf(e)==='Kode Dugaan'?e.key:'',e.cif||'',e.rek||'',v.tempat||'',isoD(v.tgl),v.alamat||'',e.kwn||'',v.src,v.ref,isoD(v.tglLapor),e.unit,e.status].join(';')})].join('\n'))};
  document.querySelectorAll('#view [data-sub]').forEach(b=>b.onclick=()=>{subType=b.dataset.sub;pre=e.id;entOpen=null;go('input')});
 }
 function wdmTable(){
