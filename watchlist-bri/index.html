@@ -372,8 +372,10 @@ function openModal(html){$('#modal').innerHTML=html;$('#modal').classList.add('o
 function closeModal(){$('#modal').classList.remove('on');$('#mscrim').classList.remove('on')}
 $('#mscrim').onclick=closeModal;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#modal').classList.contains('on'))closeModal();else closeDrawer();closeMenus()}});
-function showCsv(title,csv){openModal(`<h2>${esc(title)}</h2><p class="sub" style="margin-top:4px">Pratinjau isi file. Di aplikasi final tombol ini mengunduh file; di prototipe, salin isinya.</p><pre class="code">${esc(csv)}</pre><div class="mact"><button class="btn" data-x>Tutup</button><button class="btn pri" id="cp">${ic('dl')}Salin CSV</button></div>`);
- $('#modal').querySelector('[data-x]').onclick=closeModal;$('#cp').onclick=()=>{navigator.clipboard.writeText(csv).then(()=>toast('CSV disalin'),()=>toast('Tidak bisa menyalin di browser ini'))}}
+function dlFile(name,content,type){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);return true}catch(e){return false}}
+function showCsv(title,csv){openModal(`<h2>${esc(title)}</h2><p class="sub" style="margin-top:4px">Pratinjau isi file.</p><pre class="code">${esc(csv)}</pre><div class="mact"><button class="btn" data-x>Tutup</button><button class="btn" id="cp">Salin</button><button class="btn pri" id="dlc">${ic('dl')}Unduh</button></div>`);
+ $('#modal').querySelector('[data-x]').onclick=closeModal;$('#cp').onclick=()=>{navigator.clipboard.writeText(csv).then(()=>toast('Disalin'),()=>toast('Tidak bisa menyalin di browser ini'))};
+ $('#dlc').onclick=()=>{dlFile(title,'﻿'+csv,'text/csv;charset=utf-8')?toast('Mengunduh '+title):toast('Unduhan diblokir di tampilan ini')}}
 
 /* ---------- router ---------- */
 const TITLES={dash:'Dashboard',wdm:'Watchlist Data Management',input:'Submit Data',mysub:'My Submission',appr:'Approval',upload:'Upload Watchlist',audit:'Audit Trail',master:'Master Data & Administration'};
@@ -743,14 +745,69 @@ function vUpload(){
  const csv=()=>showCsv('PATCH_'+upTab.toUpperCase()+'_202611.csv',[cols.join('|'),...flat.map(r=>row(r).join('|'))].join('\n'));
  const c1=$('#csv');if(c1){c1.onclick=csv;$('#xls').onclick=csv}
 }
+const BA_DESC={'DTTOT & DPPSPM':'Daftar Terduga Teroris dan Organisasi Teroris (DTTOT), Daftar Pendanaan Proliferasi Senjata Pemusnah Massal (DPPSPM), Informasi Teroris PPATK, Densus 88, dan Sanctions List',
+ 'Scammer':'Data dengan jenis Scammer (internal, regulator, PUPN, dan Tindak Pidana Siber)','Judol':'Daftar Judi Online internal maupun eksternal (BI, OJK, Polri, Kominfo, Kejaksaan, PPATK)',
+ 'Negative News':'Negative News yang bersumber dari inisiatif kantor pusat dan hasil analisa LTKM','Blokir':'Blokir yang bersumber dari pihak Regulator, Eksternal, dan Internal',
+ 'Delisting Rejection List':'Data hasil perpindahan (delisting) dari Rejection List','SIPENDAR':'Data SIPENDAR dan data hasil pemadanan data nasabah dengan SIPENDAR',
+ 'Bank Koresponden':'Data Scammer BEC, Cancellation, dan Remittance yang bersumber dari Bank Koresponden','Informasi Lainnya':'Hasil Audit & Informasi PPATK, Case Narkotika, Safewatch International, dan informasi lainnya'};
+let BA=null,BAIMG={};
+function baDefaults(){const d=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+ BA={no:'B. -AML/SPE/DVA/11/2026',nd:'R.10.e-DFR/AFS/11/2026',ndUnit:'Data Protection & Fraud Risk Group',ndTgl:'2026-11-16',tgl:d,
+  add:Object.fromEntries(CATS.flatMap(c=>SUBC[c]).map(x=>[x,{Scammer:260,Blokir:2879}[x]||0])),
+  srcRL:'DFR',srcNL:'DFR',appr:'Karina Shinta Utami',apprJab:'Pgs. Department Head',user:'Sekar Sari Syaharani',userJab:'Team Member'}}
+const tglID=v=>{if(!v)return '………';const d=new Date(v+'T00:00');return d.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})};
+function baHTML(forDoc){
+ const b=BA,g=v=>v?esc(v):'<span class="gap">………</span>';
+ const subsOf=c=>SUBC[c].filter(x=>MSTAT['sub|'+x]!=='Inactive');
+ const tot=c=>subsOf(c).reduce((a,x)=>a+(TOT[x]||0)+(+b.add[x]||0),0),addC=c=>subsOf(c).reduce((a,x)=>a+(+b.add[x]||0),0);
+ const parts=c=>subsOf(c).map(x=>`<b>${fmt((TOT[x]||0)+(+b.add[x]||0))}</b> data ${esc(x)}`);
+ const joinID=a=>a.length>1?a.slice(0,-1).join(', ')+', serta '+a[a.length-1]:a.join('');
+ const addTxt=c=>{const a=subsOf(c).filter(x=>+b.add[x]);return a.length?joinID(a.map(x=>`<b>${fmt(+b.add[x])} data ${esc(x)}</b>`)):'<b>0 data</b>'};
+ const table=c=>`<table class="bat"><thead><tr><th style="width:44px">No.</th><th>Subkategori</th><th>Sumber</th><th style="width:96px">Jumlah Data</th></tr></thead><tbody>${subsOf(c).map((x,i)=>`<tr><td>${i+1}.</td><td><b>${esc(x)}</b><br><span class="mut">${esc(BA_DESC[x]||'')}</span></td><td class="mut">${esc(SRC[x].filter(z=>MSTAT['src|'+z]!=='Inactive').join(', '))}</td><td class="r"><b>${fmt((TOT[x]||0)+(+b.add[x]||0))}</b></td></tr>`).join('')}<tr><td colspan="3"><b>Total</b></td><td class="r"><b>${fmt(tot(c))}</b></td></tr></tbody></table>`;
+ const addRows=c=>{const sub=subsOf(c).find(x=>+b.add[x]);const n=Math.min(5,+b.add[sub]||0);return n?`<table class="bat"><thead><tr><th>No.</th><th>NIK</th><th>Nama</th><th>CIF</th><th>No. Rekening</th><th>Keterangan</th></tr></thead><tbody>${Array.from({length:n},(_,i)=>{const e=ENT[(i*7+(c==='Negative List'?3:0))%ENT.length];return `<tr><td>${i+1}</td><td>${esc(e.nik||'3'+String(1e14+i*7919))}</td><td>${esc(e.name.toUpperCase())}</td><td>${esc(e.cif||'-')}</td><td>${esc(e.rek||'-')}</td><td>${esc((sub+' '+(c===CATS[0]?b.srcRL:b.srcNL)).toUpperCase())}</td></tr>`}).join('')}<tr><td colspan="6" class="mut">… dan ${fmt(+b.add[sub]-n)} data lainnya (lampiran lengkap di file Excel)</td></tr></tbody></table>`:'<p class="mut">Tidak ada penambahan.</p>'};
+ const img=k=>BAIMG[k]?`<img src="${BAIMG[k]}" style="max-width:100%;border:1px solid #ccc">`:`<div class="ph">${forDoc?'(lampirkan screenshot)':'Klik "Lampirkan screenshot" di form'}</div>`;
+ return `<p class="c"><b><u>BERITA ACARA UPLOAD DATABASE WATCHLIST</u></b><br>No: ${g(b.no)}</p>
+ <ol><li>Nota Dinas ${g(b.ndUnit)} No. ${g(b.nd)} tanggal ${tglID(b.ndTgl)} perihal Permohonan <i>Upload Database Rejection List</i> dan <i>Negative List</i> AML</li></ol>
+ <p>Pada tanggal <b>${tglID(b.tgl)}</b> telah dilakukan update data watchlist terbaru atas permintaan <b>Nota Dinas ${g(b.ndUnit)} No. ${g(b.nd)}</b> tanggal <b>${tglID(b.ndTgl)}</b> dengan jumlah data <b><i>Rejection List</i></b> sebanyak <b>${fmt(addC(CATS[0]))} data</b> dan <b><i>Negative List</i></b> sebanyak <b>${fmt(addC(CATS[1]))} data</b>. Adapun rincian data yang berhasil di-<i>upload</i> sebagai berikut.</p>
+ <ol>
+ <li><b><i>Rejection List</i></b><p>Pada tanggal <b>${tglID(b.tgl)}</b> terdapat penambahan data sebanyak ${addTxt(CATS[0])} yang bersumber dari <b>${g(b.srcRL)}</b> pada <i>database Rejection List</i>. Dengan demikian, total data <b><i>Rejection List</i></b> yang ter-<i>upload</i> menjadi <b>${fmt(tot(CATS[0]))} data</b>, yang terdiri atas ${joinID(parts(CATS[0]))}.</p></li>
+ <li><b><i>Negative List</i></b><p>Pada tanggal <b>${tglID(b.tgl)}</b> terdapat penambahan data sebanyak ${addTxt(CATS[1])} yang bersumber dari <b>${g(b.srcNL)}</b> pada <i>database Negative List</i>. Dengan demikian, total <b><i>Negative List</i></b> yang ter-<i>upload</i> sebanyak <b>${fmt(tot(CATS[1]))} data</b>, yang terdiri atas ${joinID(parts(CATS[1]))}.</p></li>
+ <li>Berikut rincian data <i>Rejection List</i> dan <i>Negative List</i> sampai dengan <b>${tglID(b.tgl)}</b>:
+  <p><b>a. <i>Rejection List</i></b></p>${table(CATS[0])}
+  <p><b>b. <i>Negative List</i></b></p>${table(CATS[1])}
+  <p class="mut" style="font-size:.9em">Catatan: data kategori Delisting Akhir (${fmt(TOT['Delisting Akhir']||0)} data) tidak termasuk dalam Rejection List maupun Negative List dan tidak ikut di-<i>upload</i>.</p></li>
+ </ol>
+ <p>Pengkinian data <i>watchlist</i> yang termasuk dalam kategori tersebut di atas dilakukan dengan tujuan sebagai berikut:</p>
+ <ol type="a"><li>Sebagai <i>early warning system</i> pada saat proses <i>onboarding</i>, pengkinian data, dan transaksi nasabah <i>high risk</i>.</li><li>Pemenuhan ketentuan penerapan APU, PPT &amp; PPPSPM dalam rangka pencegahan pihak terkait TPPU, TPPT &amp; PPSPM memiliki hubungan usaha dengan Bank dan pencegahan transaksi yang dapat berisiko terhadap reputasi Bank BRI.</li><li>Hasil <i>upload</i> dan pengecekan data atas seluruh <i>update</i> di atas dapat dilihat pada lampiran di halaman berikutnya.</li></ol>
+ <table class="sig"><tr><td>Disetujui<br><br><br><br><u>${g(b.appr)}</u><br>${g(b.apprJab)}</td><td>User<br><br><br><br><u>${g(b.user)}</u><br>${g(b.userJab)}</td></tr></table>
+ <div class="pb"></div>
+ <p><b>Lampiran 1. Bukti Upload <i>Watchlist</i> pada HUE</b></p>${img('hue')}
+ <p><b>Lampiran 2. Bukti <i>Running</i> pada CML</b></p>${img('cml')}
+ <p><b>Lampiran 3. Data Penambahan <i>Rejection List</i></b></p>${addRows(CATS[0])}
+ <p><b>Lampiran 4. Data Penambahan <i>Negative List</i></b></p>${addRows(CATS[1])}`}
+const BACSS=`.ba{font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#111;background:#fff}.ba p{margin:6px 0;text-align:justify}.ba ol{padding-left:22px}.ba li{margin:6px 0}.ba .c{text-align:center}
+.ba .bat{border-collapse:collapse;width:100%;margin:6px 0 12px;font-size:12px}.ba .bat th,.ba .bat td{border:1px solid #333;padding:5px 7px;vertical-align:top;text-align:left}.ba .bat th{background:#dbe7f7;text-align:center}.ba .r{text-align:right!important;white-space:nowrap}
+.ba .mut{color:#555;font-size:11.5px}.ba .gap{background:#fff3c4}.ba .sig{width:100%;margin-top:28px;text-align:center}.ba .sig td{width:50%;vertical-align:top}.ba .ph{border:1px dashed #999;padding:30px;text-align:center;color:#888;margin-bottom:10px}.ba .pb{border-top:1px dashed #bbb;margin:22px 0}`;
 function baView(){
- $('#ub').innerHTML=`<div class="split"><div class="card"><h2>Data Berita Acara</h2><p class="sub" style="margin:4px 0 14px">Field kosong tetap bisa diisi. Template BA existing (MS Word).</p>
- <form id="baf">${[['no','Nomor BA','BA-11/AML/2026'],['tgl','Tanggal',today.toISOString().slice(0,10)],['per','Periode data','November 2026'],['jml','Jumlah record','140.968'],['p1','Pihak 1 (AML)','Rina Anggraeni'],['p2','Pihak 2 (IT)','']].map(([k,l,v])=>`<div class="fld"><label>${l}</label><input name="${k}" ${k==='tgl'?'type="date"':''} value="${esc(v)}" placeholder="Isi ${l.toLowerCase()}"></div>`).join('')}</form>
- <div class="mact"><button class="btn pri" id="bag">${ic('file')}Generate BA (.docx)</button></div></div>
- <div class="card" id="bap" style="font-family:Georgia,serif;line-height:1.7"></div></div>`;
- const f=$('#baf'),pv=()=>{const g=n=>esc(f[n].value)||'<span style="background:var(--warnb);padding:0 6px">………</span>';
-  $('#bap').innerHTML=`<p style="text-align:center;margin:0"><b>BERITA ACARA SERAH TERIMA DATA WATCHLIST</b><br>Nomor: ${g('no')}</p><p>Pada tanggal ${g('tgl')}, telah dilakukan serah terima data Watchlist periode ${g('per')} sejumlah ${g('jml')} record untuk keperluan patching HUE dan IRIS.</p><p>Demikian berita acara ini dibuat untuk dipergunakan sebagaimana mestinya.</p><div style="display:flex;justify-content:space-between;margin-top:40px;text-align:center"><span>Pihak Pertama<br><br><br>${g('p1')}</span><span>Pihak Kedua<br><br><br>${g('p2')}</span></div>`};
- f.oninput=pv;pv();$('#bag').onclick=()=>{log('Generate BA',f.no.value,'');toast('BA dibentuk. Di aplikasi final file .docx akan terunduh.')};
+ if(!BA)baDefaults();
+ const subs=CATS.flatMap(c=>SUBC[c].map(x=>[c,x]));
+ $('#ub').innerHTML=`<div class="split" style="grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)"><div class="card"><h2>Data Berita Acara</h2><p class="sub" style="margin:4px 0 14px">Rincian per subkategori terisi otomatis dari database. Isi penambahan sesuai data yang di-upload.</p>
+ <form id="baf"><div class="fgrid">${[['no','Nomor BA'],['tgl','Tanggal upload','date'],['ndUnit','Unit pengirim Nota Dinas'],['nd','No. Nota Dinas'],['ndTgl','Tanggal Nota Dinas','date']].map(([k,l,t])=>`<div class="fld"><label>${l}</label><input name="${k}" type="${t||'text'}" value="${esc(BA[k])}"></div>`).join('')}</div>
+ <h3 style="font-size:13px;margin:10px 0 6px">Penambahan data per subkategori</h3>
+ ${CATS.map(c=>`<div class="var"><div class="vh"><b style="color:var(--ink)">${c}</b><span>sumber: <input name="${c===CATS[0]?'srcRL':'srcNL'}" value="${esc(c===CATS[0]?BA.srcRL:BA.srcNL)}" style="width:110px;height:28px;border:1px solid var(--line);border-radius:6px;padding:0 6px"></span></div>
+  ${SUBC[c].map(x=>`<li style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 0;border-top:1px dashed var(--line);list-style:none"><span>${esc(x)}</span><input type="number" min="0" data-add="${esc(x)}" value="${+BA.add[x]||0}" style="width:110px;height:32px;border:1px solid var(--line);border-radius:7px;padding:0 8px;text-align:right"></li>`).join('')}</div>`).join('')}
+ <div class="fgrid">${[['appr','Penyetuju'],['apprJab','Jabatan penyetuju'],['user','User'],['userJab','Jabatan user']].map(([k,l])=>`<div class="fld"><label>${l}</label><input name="${k}" value="${esc(BA[k])}"></div>`).join('')}</div>
+ <div class="fgrid">${[['hue','Lampiran 1 · Bukti HUE'],['cml','Lampiran 2 · Bukti CML']].map(([k,l])=>`<div class="fld"><label>${l}</label><label class="btn" style="justify-content:center">${ic('up')}${BAIMG[k]?'Ganti screenshot':'Lampirkan screenshot'}<input type="file" accept="image/*" data-img="${k}" hidden></label></div>`).join('')}</div></form>
+ <div class="mact"><button class="btn" id="bar">Reset</button><button class="btn pri" id="bag">${ic('file')}Unduh BA (Word)</button></div></div>
+ <div class="card" style="padding:0;overflow:hidden"><div style="padding:10px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;font-size:12px;color:var(--mute)"><span>Pratinjau dokumen</span><span>Kuning = belum diisi</span></div><div style="max-height:calc(100vh - 230px);overflow:auto;background:#eef1f5;padding:18px"><div class="ba" id="bap" style="max-width:760px;margin:0 auto;padding:40px 48px;box-shadow:0 2px 10px #0002"></div></div></div></div>`;
+ if(!document.getElementById('bacss')){const st=document.createElement('style');st.id='bacss';st.textContent=BACSS;document.head.append(st)}
+ const f=$('#baf'),pv=()=>{$('#bap').innerHTML=baHTML(false)};
+ f.oninput=e=>{const t=e.target;if(t.dataset.add!==undefined)BA.add[t.dataset.add]=Math.max(0,+t.value||0);else if(t.name&&t.name in BA)BA[t.name]=t.value;pv()};
+ f.onchange=e=>{const t=e.target;if(t.dataset.img&&t.files[0]){const r=new FileReader();r.onload=()=>{BAIMG[t.dataset.img]=r.result;baView();toast('Screenshot dilampirkan')};r.readAsDataURL(t.files[0])}};
+ pv();
+ $('#bar').onclick=()=>{baDefaults();BAIMG={};baView()};
+ $('#bag').onclick=()=>{const doc=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>${BACSS} body{font-family:Arial}</style></head><body><div class="ba">${baHTML(true)}</div></body></html>`;
+  const name='BA_Upload_Watchlist_'+(BA.tgl||'')+'.doc';log('Generate BA',BA.no,'');dlFile(name,doc,'application/msword')?toast('Mengunduh '+name):toast('Unduhan diblokir di tampilan ini')};
 }
 
 /* ================= AUDIT TRAIL ================= */
