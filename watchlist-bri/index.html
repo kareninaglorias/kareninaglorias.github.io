@@ -60,7 +60,7 @@ h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:0}
 .sub{color:var(--mute);margin:0 0 18px;font-size:13px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
 .g{display:grid;gap:16px}
-.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 .kpi{cursor:pointer;transition:border-color .15s}.kpi:hover{border-color:var(--blue2)}
 .kpi small{color:var(--mute);font-size:12.5px}.kpi b{display:block;font-size:26px;margin:6px 0 2px;font-variant-numeric:tabular-nums}
 .kpi em{font-style:normal;font-size:12px}
@@ -265,7 +265,7 @@ const GEN=['DTTOT & DPPSPM','DTTOT & DPPSPM','Scammer','Scammer','Scammer','Judo
 for(let i=1;i<=60;i++){
  const sub=pick(GEN),cat=catOf(sub);
  const n=pick(NAMES),nVar=rnd()<.3,aVar=rnd()<.35,isKD=KEY[sub]==='Kode Dugaan';
- const status=rnd()<.88?'Active':'Inactive';
+ const status='Active';
  const src=pick(SRC[sub]),src2=SRC[sub].length>1?pick(SRC[sub].filter(x=>x!==src)):src;
  const nik='3'+String(Math.floor(rnd()*1e15)).padStart(15,'0');
  const e={id:newEid(),cat,sub,status,unit:pick(UNITS),
@@ -305,7 +305,7 @@ function restoreToRejection(ne,why,by,t=new Date()){
  const o=ENT.find(x=>x.id===ne.origin);if(!o)return;
  ne.vars.forEach(v=>{const ov=o.vars.find(x=>x.vid===v.origVid);if(ov)ov.del=false});
  o.status='Active';o.updated=t;o.hist.push({t,a:'Dikembalikan ke Rejection List',u:by,r:'Dari '+ne.id+' · '+why});
- ne.status='Inactive';ne.restored=true;ne.updated=t;ne.hist.push({t,a:'Dikembalikan ke Rejection List',u:by,r:'Record dinonaktifkan, variasi aktif kembali di '+o.id+' · '+why});
+ ne.status='Delisted';ne.restored=true;ne.updated=t;ne.hist.push({t,a:'Dikembalikan ke Rejection List',u:by,r:'Record di-delist, variasi aktif kembali di '+o.id+' · '+why});
 }
 // seed: some delisting history
 ENT.filter(e=>e.cat==='Rejection List').slice(0,5).forEach((e,i)=>delistVars(e,i===1&&e.vars.length>1?[e.vars[1].vid]:e.vars.map(v=>v.vid),'Surat pencabutan dari sumber','AML Admin',daysAgo(10+i)));
@@ -388,10 +388,10 @@ const TOT={'DTTOT & DPPSPM':44110,'Scammer':21350,'Judol':7897,'Negative News':4
 let period='12';
 function vDash(){
  const scopeTot=ROLE.scope.filter(c=>c!=='Delisting Akhir').reduce((a,c)=>a+TOT[c],0),pend=SUBS.filter(s=>!['Approved','Draft','Dikembalikan'].includes(s.status)).length;
- const act=Math.round(scopeTot*.886),del=Math.round(scopeTot*.0493),ina=scopeTot-act-del;
+ const inS=c=>SUBC[c].filter(x=>ROLE.scope.includes(x)).reduce((a,x)=>a+(TOT[x]||0),0),rl=inS('Rejection List'),nl=inS('Negative List'),da=inS('Delisting Akhir');
  $('#view').innerHTML=`<h1>Ringkasan Watchlist</h1><p class="sub">Per ${dstr(today)} · ${roleKey==='aml'?'seluruh kategori':'sesuai scope unit Anda'} · data contoh prototipe</p>
  <div class="g kpis">
-  ${[['Total data Watchlist',fmt(scopeTot),'Record, bukan individu unik','b-b','wdm',{}],['Active',fmt(act),(act/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','ok','wdm',{status:'Active'}],['Inactive',fmt(ina),'Tidak diekspor ke patching','mute','wdm',{status:'Inactive'}],['Delisted',fmt(del),'Termasuk Delisting Akhir','err','wdm',{status:'Delisted'}],['Pending approval',pend,'Menunggu tindakan','warn','appr',{}],['Validation errors',SUBS.reduce((a,s)=>a+s.err,0),'Di draft & submission','err','appr',{}]].map(([l,v,s,c,p,f],i)=>`<div class="card kpi" data-i="${i}" tabindex="0"><small>${l}</small><b>${v}</b><em style="color:var(--${c==='b-b'?'blue2':c})">${s}</em></div>`).join('')}
+  ${[['Total data Watchlist',fmt(scopeTot),'Rejection + Negative List','b-b'],['Rejection List',fmt(rl),(rl/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','b-b'],['Negative List',fmt(nl),(nl/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','b-b'],['Delisting Akhir',fmt(da),'Tidak ikut patching','mute'],['Pending approval',pend,'Menunggu tindakan','warn']].map(([l,v,s,c],i)=>`<div class="card kpi" data-i="${i}" tabindex="0"><small>${l}</small><b>${v}</b><em style="color:var(--${c==='b-b'?'blue2':c})">${s}</em></div>`).join('')}
  </div>
  <div class="g row2" style="margin-top:16px">
   <div class="card"><div class="ch"><div><h2>Tren penambahan dan penghapusan</h2><p>Jumlah record per bulan</p></div><div class="sp"></div>
@@ -414,8 +414,8 @@ function vDash(){
    ${[['Unit Kerja A',32],['Unit Kerja B',26],['Unit Kerja C',18],['AML Group',24]].map(([u,p])=>`<div style="margin-bottom:8px"><div class="bl"><span>${u}</span><b>${p}%</b></div><div class="bt"><i style="width:${p}%;background:var(--mentari)"></i></div></div>`).join('')}
    <p class="note">Lead time rata-rata pengajuan → CSV siap patching: <b>0,8 hari</b> (target &lt; 1 hari)</p></div>
  </div>`;
- const KF=[{},{status:'Active'},{status:'Inactive'},{status:'Delisted'}];
- document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{const i=+k.dataset.i;if(i>=4)return go(navOK('appr')?'appr':'mysub');resetF();if(KF[i].status)F.status=new Set([KF[i].status]);go('wdm')});
+ const KF=[{},{cat:'Rejection List'},{cat:'Negative List'},{cat:'Delisting Akhir'}];
+ document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{const i=+k.dataset.i;if(i>=4)return go(navOK('appr')?'appr':'mysub');resetF();if(KF[i].cat)F.cat=new Set([KF[i].cat]);go('wdm')});
  document.querySelectorAll('.bar[data-c]').forEach(b=>b.onclick=()=>{resetF();F.sub=new Set([b.dataset.c]);go('wdm')});document.querySelectorAll('.bar[data-k]').forEach(b=>b.onclick=()=>{resetF();F.cat=new Set([b.dataset.k]);go('wdm')});
  $('#toAudit').onclick=()=>go('audit');
  $('#per').onclick=e=>{const b=e.target.closest('button');if(b){period=b.dataset.p;vDash()}};
@@ -440,7 +440,7 @@ function drawTrend(){
 let F,wv='item',q='',asof='',sort={k:'id',d:1},pg=1,per=10,hlId=null;
 function resetF(){F={cat:new Set(),sub:new Set(),src:new Set(),status:new Set(),unit:new Set()};q='';asof='';pg=1;hlId=null}
 resetF();
-const FDEF=[['cat','Kategori',()=>ALLCATS.filter(c=>SUBC[c].some(x=>ROLE.scope.includes(x)))],['sub','Subkategori',()=>ROLE.scope.filter(x=>x!=='Delisting Akhir')],['src','Sumber Data',()=>[...new Set(ENT.filter(inScope).flatMap(e=>e.vars.map(v=>v.src)))].sort()],['status','Status',()=>['Active','Inactive','Delisted']],['unit','PIC Group',()=>UNITS]];
+const FDEF=[['cat','Kategori',()=>ALLCATS.filter(c=>SUBC[c].some(x=>ROLE.scope.includes(x)))],['sub','Subkategori',()=>ROLE.scope.filter(x=>x!=='Delisting Akhir')],['src','Sumber Data',()=>[...new Set(ENT.filter(inScope).flatMap(e=>e.vars.map(v=>v.src)))].sort()],['status','Status',()=>['Active','Delisted']],['unit','PIC Group',()=>UNITS]];
 function filtered(){
  const qq=q.toLowerCase();
  return ENT.filter(e=>inScope(e)&&(!F.cat.size||F.cat.has(e.cat))&&(!F.sub.size||F.sub.has(e.sub))&&(!F.status.size||F.status.has(e.status))&&(!F.unit.size||F.unit.has(e.unit))
