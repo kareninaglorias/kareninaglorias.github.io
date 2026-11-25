@@ -262,13 +262,15 @@ for(let i=1;i<=64;i++){
  ENT.push(e);
 }
 let SUBS=[
- {id:'SUB-2611-014',title:'Penambahan Scammer November',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(1),stage:1,status:'Menunggu Checker',n:48,err:0,warn:3,letters:['ND-881/UKA/2026','ND-884/UKA/2026']},
- {id:'SUB-2611-013',title:'Update DTTOT PPATK',unit:'AML Group',maker:'Rina A.',created:daysAgo(2),stage:3,status:'AML Review',n:126,err:0,warn:7,letters:['B-2210/PPATK/2026']},
- {id:'SUB-2611-012',title:'Negative List Kredit Macet',unit:'Unit Kerja B',maker:'Doni P.',created:daysAgo(3),stage:2,status:'Menunggu Signer',n:22,err:0,warn:0,letters:['ND-512/UKB/2026']},
- {id:'SUB-2611-011',title:'Delisting Rejection List',unit:'Unit Kerja C',maker:'Wulan K.',created:daysAgo(4),stage:0,status:'Dikembalikan',n:6,err:2,warn:1,letters:['ND-301/UKC/2026'],note:'Referensi delisting belum dilampirkan untuk 2 record.'},
- {id:'SUB-2611-010',title:'Scammer Phishing Q4',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(6),stage:4,status:'Approved',n:73,err:0,warn:0,letters:['ND-842/UKA/2026']},
- {id:'SUB-2611-009',title:'Draft Fraud Internal',unit:'Unit Kerja B',maker:'Doni P.',created:daysAgo(7),stage:0,status:'Draft',n:15,err:4,warn:2,letters:['ND-498/UKB/2026']},
+ {id:'SUB-2611-014',type:'Data baru',title:'Penambahan Scammer November',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(1),stage:1,status:'Menunggu Checker',n:48,err:0,warn:3,letters:['ND-881/UKA/2026','ND-884/UKA/2026']},
+ {id:'SUB-2611-013',type:'Data baru',title:'Update DTTOT PPATK',unit:'AML Group',maker:'Rina A.',created:daysAgo(2),stage:3,status:'AML Review',n:126,err:0,warn:7,letters:['B-2210/PPATK/2026']},
+ {id:'SUB-2611-012',type:'Data baru',title:'Negative List Kredit Macet',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(3),stage:2,status:'Menunggu Signer',n:22,err:0,warn:0,letters:['ND-512/UKB/2026']},
+ {id:'SUB-2611-011',type:'Delisting',title:'Delisting Rejection List',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(4),stage:0,status:'Dikembalikan',n:6,err:2,warn:1,letters:['ND-301/UKC/2026'],note:'Referensi delisting belum dilampirkan untuk 2 record.'},
+ {id:'SUB-2611-010',type:'Data baru',title:'Scammer Phishing Q4',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(6),stage:4,status:'Approved',n:73,err:0,warn:0,letters:['ND-842/UKA/2026']},
+ {id:'SUB-2611-009',type:'Data baru',title:'Draft Fraud Internal',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(7),stage:0,status:'Draft',n:15,err:4,warn:2,letters:['ND-498/UKB/2026']},
+{id:'SUB-2611-008',type:'Ubah data',title:'Update alamat DTTOT',unit:'AML Group',maker:'Rina A.',created:daysAgo(8),stage:0,status:'Draft',n:3,err:0,warn:1,letters:['B-2190/PPATK/2026']},
 ];
+const newId=()=>'SUB-2611-'+String(15+SUBS.length).padStart(3,'0');
 const STAGES=['Maker','Checker','Signer','AML Review','Ready'];
 let AUDIT=[];
 ENT.forEach(e=>e.hist.forEach(h=>AUDIT.push({t:h.t,user:h.u,act:h.a,obj:e.id+' · '+e.cat,r:h.r})));
@@ -283,11 +285,14 @@ const ROLES={aml:{name:'AML Administrator',short:'AML Admin',ini:'AA',scope:CATS
 let roleKey='aml',ROLE=ROLES.aml;
 
 /* ---------- nav & sidebar ---------- */
-const NAV=[['dash','dash','Dashboard'],['wdm','db','Watchlist Data Management'],['input','in','Input Data'],['appr','ok','Submission & Approval'],['upload','up','Upload Watchlist'],['audit','hist','Audit Trail'],['master','set','Master Data & Administration']];
+const NAV=[['dash','dash','Dashboard'],['wdm','db','Watchlist Data Management'],['input','in','Submit Data'],['mysub','file','My Submission'],['appr','ok','Approval'],['upload','up','Upload Watchlist'],['audit','hist','Audit Trail'],['master','set','Master Data & Administration']];
 let page='dash';
+const navOK=k=>!((k==='mysub'||k==='input')&&roleKey==='checker')&&!(k==='appr'&&roleKey==='maker');
+const mine=s=>roleKey==='aml'?s.unit==='AML Group':s.unit==='Unit Kerja A';
+const needsMe=s=>(roleKey==='checker'&&s.unit==='Unit Kerja A'&&(s.stage===1||s.stage===2))||(roleKey==='aml'&&s.stage===3);
 function renderNav(){
- const pend=SUBS.filter(s=>pendingFor(s)).length;
- $('#nav').innerHTML=NAV.map(([k,i,t])=>`<a data-p="${k}" data-t="${t}" class="${page===k?'on':''}" tabindex="0">${ic(i)}<span>${t}</span>${k==='appr'&&pend?`<em class="badge b-w">${pend}</em>`:''}</a>`).join('');
+ const cnt={appr:SUBS.filter(needsMe).length,mysub:SUBS.filter(s=>mine(s)&&['Draft','Dikembalikan'].includes(s.status)).length};
+ $('#nav').innerHTML=NAV.filter(([k])=>navOK(k)).map(([k,i,t])=>`<a data-p="${k}" data-t="${t}" class="${page===k?'on':''}" tabindex="0">${ic(i)}<span>${t}</span>${cnt[k]?`<em class="badge b-w">${cnt[k]}</em>`:''}</a>`).join('');
  $('#scope').textContent=ROLE.lbl;
 }
 $('#nav').onclick=e=>{const a=e.target.closest('a');if(a)go(a.dataset.p)};
@@ -308,7 +313,7 @@ $('#userBtn').onclick=e=>{e.stopPropagation();const m=$('#userMenu');closeMenus(
 $('#notifBtn').onclick=e=>{e.stopPropagation();const m=$('#notifMenu');closeMenus(m);
  const items=[['SUB-2611-014 menunggu pemeriksaan Checker','appr','1 jam lalu'],['7 warning mismatch Big Data di SUB-2611-013','appr','3 jam lalu'],['SUB-2611-011 dikembalikan ke Maker','appr','Kemarin'],['Patching HUE bulan November jatuh tempo 10 Des','upload','Kemarin']];
  m.innerHTML=`<div style="padding:8px 10px;font-weight:600">Notifikasi</div>`+items.map(([t,p,w])=>`<label data-go="${p}"><span>${esc(t)}<br><small style="color:var(--mute)">${w}</small></span></label>`).join('');
- m.hidden=!m.hidden;$('#ndot').style.display='none';m.onclick=ev=>{const l=ev.target.closest('[data-go]');if(l){m.hidden=true;go(l.dataset.go)}}};
+ m.hidden=!m.hidden;$('#ndot').style.display='none';m.onclick=ev=>{const l=ev.target.closest('[data-go]');if(l){m.hidden=true;const g=l.dataset.go;go(g==='appr'&&!navOK('appr')?'mysub':g)}}};
 
 /* ---------- drawer & modal ---------- */
 function openDrawer(html){$('#drawer').innerHTML=html;$('#drawer').classList.add('on');$('#scrim').classList.add('on')}
@@ -322,9 +327,9 @@ function showCsv(title,csv){openModal(`<h2>${esc(title)}</h2><p class="sub" styl
  $('#modal').querySelector('[data-x]').onclick=closeModal;$('#cp').onclick=()=>{navigator.clipboard.writeText(csv).then(()=>toast('CSV disalin'),()=>toast('Tidak bisa menyalin di browser ini'))}}
 
 /* ---------- router ---------- */
-const TITLES={dash:'Dashboard',wdm:'Watchlist Data Management',input:'Input Data',appr:'Submission & Approval',upload:'Upload Watchlist',audit:'Audit Trail',master:'Master Data & Administration'};
+const TITLES={dash:'Dashboard',wdm:'Watchlist Data Management',input:'Submit Data',mysub:'My Submission',appr:'Approval',upload:'Upload Watchlist',audit:'Audit Trail',master:'Master Data & Administration'};
 function go(p){page=p;closeDrawer();if(innerWidth<760){sideMode='hid';applySide()}try{history.replaceState(null,'','#'+p)}catch(e){}render();$('#view').scrollTop=0}
-function render(){renderNav();$('#crumbB').textContent=TITLES[page];({dash:vDash,wdm:vWdm,input:vInput,appr:vAppr,upload:vUpload,audit:vAudit,master:vMaster})[page]()}
+function render(){if(!navOK(page))page='dash';renderNav();$('#crumbB').textContent=TITLES[page];({dash:vDash,wdm:vWdm,input:vInput,mysub:()=>vSubs('mysub'),appr:()=>vSubs('appr'),upload:vUpload,audit:vAudit,master:vMaster})[page]()}
 const inScope=e=>ROLE.scope.includes(e.cat);
 
 /* ================= DASHBOARD ================= */
@@ -358,7 +363,7 @@ function vDash(){
    <p class="note">Lead time rata-rata pengajuan → CSV siap patching: <b>0,8 hari</b> (target &lt; 1 hari)</p></div>
  </div>`;
  const KF=[{},{status:'Active'},{status:'Inactive'},{status:'Delisted'}];
- document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{const i=+k.dataset.i;if(i>=4)return go('appr');resetF();if(KF[i].status)F.status=new Set([KF[i].status]);go('wdm')});
+ document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{const i=+k.dataset.i;if(i>=4)return go(navOK('appr')?'appr':'mysub');resetF();if(KF[i].status)F.status=new Set([KF[i].status]);go('wdm')});
  document.querySelectorAll('.bar[data-c]').forEach(b=>b.onclick=()=>{resetF();F.cat=new Set([b.dataset.c]);go('wdm')});
  $('#toAudit').onclick=()=>go('audit');
  $('#per').onclick=e=>{const b=e.target.closest('button');if(b){period=b.dataset.p;vDash()}};
@@ -412,12 +417,12 @@ function bindChips(rerender){
 function vWdm(){
  $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Watchlist Data Management</h1><p class="sub" style="margin:0" id="wsub"></p></div>
   <div class="tabs" id="vt"><button data-v="item" class="${wv==='item'?'on':''}">Item View</button><button data-v="detail" class="${wv==='detail'?'on':''}">Detail View</button></div>
-  <button class="btn" id="exp">${ic('dl')}Export</button>${roleKey!=='checker'?`<button class="btn pri" id="add">${ic('in')}Tambah data</button>`:''}</div>
+  <button class="btn" id="exp">${ic('dl')}Export</button>${roleKey!=='checker'?`<button class="btn pri" id="add">${ic('in')}Submit Data</button>`:''}</div>
   <div class="card"><div class="bar2"><label class="search">${ic('search')}<input id="q" placeholder="Cari nama, alias, ID Watchlist, NIK, CIF, Kode Dugaan…" value="${esc(q)}"></label></div>
   <div class="bar2" id="chips"></div><div id="tbl"></div></div>`;
  $('#vt').onclick=e=>{const b=e.target.closest('button');if(b){wv=b.dataset.v;pg=1;vWdm()}};
  $('#q').oninput=e=>{q=e.target.value;pg=1;wdmTable()};
- $('#exp').onclick=exportModal;const ad=$('#add');if(ad)ad.onclick=()=>go('input');
+ $('#exp').onclick=exportModal;const ad=$('#add');if(ad)ad.onclick=()=>{subType='new';go('input')};
  wdmTable();
 }
 function wdmTable(){
@@ -450,12 +455,14 @@ function pager(total,unit){const pages=Math.max(1,Math.ceil(total/per));let b=[]
  <button data-g="${pg-1}" ${pg===1?'disabled':''}>‹</button>${b.map(x=>x==='…'?'<span>…</span>':`<button data-g="${x}" class="${x===pg?'on':''}">${x}</button>`).join('')}<button data-g="${pg+1}" ${pg===pages?'disabled':''}>›</button></div></div>`}
 function bindPager(fn){document.querySelectorAll('.pg [data-g]').forEach(b=>b.onclick=()=>{pg=+b.dataset.g;fn()});const s=$('#per');if(s)s.onchange=e=>{per=+e.target.value;pg=1;fn()};const r=$('#rst2');if(r)r.onclick=()=>{resetF();fn()}}
 
+function openSub(e){return SUBS.find(s=>s.apply&&s.apply.id===e.id&&!['Approved'].includes(s.status))}
 function entityDrawer(id){
- const e=ENT.find(x=>x.id===id);const aml=roleKey==='aml';
+ const e=ENT.find(x=>x.id===id);const aml=roleKey==='aml',os=openSub(e);
  const attrs=['nama','alamat'].map(a=>{const vals=[...new Map(e.vars.map(v=>[v[a],v])).values()];return {a,vals}});
  openDrawer(`<div class="dh"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><small style="color:var(--mute);font-size:11px">ENTITY DETAIL</small><h2 style="font-size:18px;margin:2px 0 6px">${esc(e.name)}</h2>
-  <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-b">${e.id} · ${e.cat}</span>${stBadge(e.status)}</div></div><button class="ib" id="dx" aria-label="Tutup">${ic('x')}</button></div></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-b">${e.id} · ${e.cat}</span>${stBadge(e.status)}${os?'<span class="badge b-w">Perubahan diajukan</span>':''}</div></div><button class="ib" id="dx" aria-label="Tutup">${ic('x')}</button></div></div>
  <div class="db">
+  ${os?`<div class="alert w" style="margin-top:14px">${ic('hist')}<span><b>${os.type} sedang diproses: ${os.id}</b>Status ${esc(os.status)}. Data di bawah belum berubah sampai pengajuan disetujui.</span></div>`:''}
   <div class="sec"><h3>${ic('user')}Entity Information</h3><dl class="kv"><dt>ID Watchlist</dt><dd>${e.id}</dd><dt>Kategori</dt><dd>${e.cat}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}</dd><dt>Primary key (${KEY[e.cat]})</dt><dd>${esc(e.key)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>PIC Group</dt><dd>${esc(e.unit)}</dd><dt>Dibuat</dt><dd>${dstr(e.created)}</dd><dt>Terakhir diubah</dt><dd>${dstr(e.updated)}</dd></dl></div>
   <div class="sec"><h3>${ic('db')}Attributes &amp; Variations</h3>${e.vars.length>1?`<div class="alert w">${ic('warn')}<span><b>Ada ${e.vars.length} variasi atribut</b>Key sama dalam kategori yang sama. Variasi dipertahankan beserta sumbernya.</span></div>`:''}
    ${attrs.map(({a,vals})=>`<div class="var"><div class="vh"><b style="color:var(--ink)">${a==='nama'?'Nama':'Alamat'}</b><span>${vals.length} variasi</span></div><ul>${vals.map(v=>`<li><span>${esc(v[a])}</span><small>${esc(v.src)}</small></li>`).join('')}</ul></div>`).join('')}
@@ -464,37 +471,11 @@ function entityDrawer(id){
   <div class="sec"><h3>${ic('hist')}Activity History</h3><div class="tl">${[...e.hist].reverse().map(h=>`<div><b style="font-weight:500">${esc(h.a)}</b><small>${dstr(h.t)} · ${esc(h.u)}</small><small>${esc(h.r)}</small></div>`).join('')}</div></div>
  </div>
  <div class="df"><button class="btn pri" id="ofd">${ic('link')}Open Full Detail View</button>
-  ${e.status!=='Delisted'&&roleKey!=='checker'?`<button class="btn dan" id="dl">${aml?'Delist':'Ajukan delisting'}</button>`:''}
-  ${e.status==='Delisted'&&aml?`<button class="btn" id="re">Reactivate</button>`:''}
-  ${aml?`<button class="btn" id="ed">Edit</button>`:''}</div>`);
+  ${roleKey==='checker'||os?'':e.status==='Delisted'?(aml?`<button class="btn" data-sub="react">Ajukan reactivation</button>`:''):`<button class="btn" data-sub="update">Ajukan perubahan</button><button class="btn dan" data-sub="delist">Ajukan delisting</button>`}
+  <p class="note" style="width:100%;margin:2px 0 0">Data tidak bisa diubah langsung. Semua perubahan diajukan lewat menu Submit Data dan melalui approval.</p></div>`);
  $('#dx').onclick=closeDrawer;
  $('#ofd').onclick=()=>{wv='detail';resetF();q=e.id;hlId=e.id;go('wdm')};
- const dl=$('#dl');if(dl)dl.onclick=()=>delistModal(e);
- const re=$('#re');if(re)re.onclick=()=>{e.status='Active';e.updated=new Date();e.hist.push({t:new Date(),a:'Reactivated',u:ROLE.name,r:'Reaktivasi oleh AML'});log('Reactivated',e.id,'Reaktivasi');toast(e.id+' diaktifkan kembali');entityDrawer(id);wdmTable()};
- const ed=$('#ed');if(ed)ed.onclick=()=>editModal(e);
-}
-function delistModal(e){
- const aml=roleKey==='aml';
- openModal(`<h2>${aml?'Delist':'Ajukan delisting'} ${e.id}</h2><p class="sub" style="margin-top:4px">${esc(e.name)} · ${e.cat}. ${e.cat!=='Negative List'?'Record tetap ada dengan status Delisted dan dicatat juga di Negative List.':''} ${aml?'':'Pengajuan akan direview AML.'}</p>
- <form id="fd"><div class="fld"><label>Alasan delisting <i>*</i></label><select name="r"><option value="">Pilih alasan</option><option>Surat pencabutan dari sumber</option><option>Salah identitas</option><option>Putusan pengadilan</option><option>Lainnya</option></select></div>
- <div class="fld"><label>Nomor referensi <i>*</i></label><input name="ref" placeholder="mis. B-123/PPATK/2026"></div>
- <div class="fld"><label>Catatan</label><textarea name="n"></textarea></div>
- <div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn dan" type="submit">${aml?'Delist sekarang':'Kirim pengajuan'}</button></div></form>`);
- $('#modal').querySelector('[data-x]').onclick=closeModal;
- $('#fd').onsubmit=ev=>{ev.preventDefault();const f=ev.target;let ok=true;
-  ['r','ref'].forEach(n=>{const el=f[n],w=el.closest('.fld');w.querySelector('.em')?.remove();if(!el.value.trim()){ok=false;w.classList.add('bad');w.insertAdjacentHTML('beforeend','<span class="em">Wajib diisi</span>')}else w.classList.remove('bad')});
-  if(!ok)return;
-  if(aml){e.status='Delisted';e.updated=new Date();e.hist.push({t:new Date(),a:'Delisted',u:ROLE.name,r:f.r.value+' · '+f.ref.value});log('Delisted',e.id,f.r.value);toast(e.id+' di-delist')}
-  else{SUBS.unshift({id:'SUB-2611-0'+(15+SUBS.length),title:'Pengajuan delisting '+e.id,unit:'Unit Kerja A',maker:ROLE.name,created:new Date(),stage:1,status:'Menunggu Checker',n:1,err:0,warn:0,letters:[f.ref.value]});log('Delisting requested',e.id,f.r.value);toast('Pengajuan delisting dikirim ke Checker')}
-  closeModal();entityDrawer(e.id);wdmTable();renderNav()};
-}
-function editModal(e){
- openModal(`<h2>Edit ${e.id}</h2><p class="sub" style="margin-top:4px">Perubahan tercatat di audit trail. Aturan approval ulang setelah edit AML masih TBD.</p>
- <form id="fe"><div class="fld"><label>Subkategori</label><select name="sub">${SUBC[e.cat].map(s=>`<option ${s===e.sub?'selected':''}>${esc(s)}</option>`).join('')}</select></div>
- <div class="fld"><label>CIF</label><input name="cif" value="${esc(e.cif||'')}"></div><div class="fld"><label>Alasan perubahan <i>*</i></label><input name="r" required></div>
- <div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn pri">Simpan</button></div></form>`);
- $('#modal').querySelector('[data-x]').onclick=closeModal;
- $('#fe').onsubmit=ev=>{ev.preventDefault();const f=ev.target;e.sub=f.sub.value;e.cif=f.cif.value||null;e.updated=new Date();e.hist.push({t:new Date(),a:'Updated',u:ROLE.name,r:f.r.value});log('Updated',e.id,f.r.value);closeModal();toast('Perubahan disimpan');entityDrawer(e.id);wdmTable()};
+ document.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{subType=b.dataset.sub;pre=e.id;go('input')});
 }
 function exportModal(){
  const rows=filtered();
@@ -508,12 +489,62 @@ function exportModal(){
 /* ================= INPUT DATA ================= */
 let inTab='bulk',BULK=null,scCat='Scammer';
 const FIELDS={nama:'Nama',alias:'Alias Nama',nik:'NIK',kode:'Kode Dugaan',cif:'CIF',rek:'No. Rekening',tempat_lahir:'Tempat Lahir',tgl_lahir:'Tanggal Lahir',alamat:'Alamat',kwn:'Kewarganegaraan',sumber:'Sumber Data',no_surat:'No. Surat / Referensi',tgl_lapor:'Tanggal Dilaporkan'};
+let subType='new',pre=null;
+const STYPE={new:'Data baru',update:'Ubah data',delist:'Delisting',react:'Reactivation',master:'Master data'};
 function vInput(){
- if(roleKey==='checker'){$('#view').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Role Checker/Signer tidak dapat membuat input.</b><br>Ganti role ke Maker atau AML Admin dari menu profil.</p></div>`;return}
- $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Input Data</h1><p class="sub" style="margin:0">Semua input memakai template standar BRI. Field wajib mengikuti kategori.</p></div>
- <div class="tabs" id="it"><button data-t="single" class="${inTab==='single'?'on':''}">Single Entry</button><button data-t="bulk" class="${inTab==='bulk'?'on':''}">Bulk Upload</button></div></div><div id="ib"></div>`;
- $('#it').onclick=e=>{const b=e.target.closest('button');if(b){inTab=b.dataset.t;vInput()}};
- inTab==='single'?single():bulk();
+ if(roleKey==='checker'){$('#view').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Role Checker/Signer tidak dapat mengajukan data.</b><br>Ganti role ke Maker atau AML Admin dari menu profil.</p></div>`;return}
+ const types=Object.keys(STYPE).filter(k=>roleKey==='aml'||!['react','master'].includes(k));if(!types.includes(subType))subType='new';
+ $('#view').innerHTML=`<h1>Submit Data</h1><p class="sub">Satu-satunya pintu untuk semua perubahan Watchlist. Setiap pengajuan masuk ke My Submission dan melalui approval sebelum mengubah database.</p>
+ <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px"><div class="tabs" id="stt">${types.map(k=>`<button data-t="${k}" class="${subType===k?'on':''}">${STYPE[k]}</button>`).join('')}</div>
+ ${subType==='new'?`<div class="sp" style="flex:1"></div><div class="tabs" id="it"><button data-t="single" class="${inTab==='single'?'on':''}">Single Entry</button><button data-t="bulk" class="${inTab==='bulk'?'on':''}">Bulk Upload</button></div>`:''}</div><div id="ib"></div>`;
+ $('#stt').onclick=e=>{const b=e.target.closest('button');if(b){subType=b.dataset.t;pre=null;vInput()}};
+ const it=$('#it');if(it)it.onclick=e=>{const b=e.target.closest('button');if(b){inTab=b.dataset.t;vInput()}};
+ if(subType==='new')return inTab==='single'?single():bulk();
+ changeForm(subType);
+}
+function changeForm(kind){
+ const aml=roleKey==='aml';
+ if(kind==='master'){
+  $('#ib').innerHTML=`<div class="card" style="max-width:720px"><form id="cf" novalidate><div class="fgrid"><div class="fld"><label>Jenis master data <i>*</i></label><select name="mt"><option value="src">Source</option><option value="sub">Subcategory</option></select></div>
+  <div class="fld"><label>Kategori induk</label><select name="c">${CATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
+  <div class="fld"><label>Nama <i>*</i></label><input name="n" placeholder="mis. Bareskrim Polri"></div><div class="fld"><label>Alasan / referensi <i>*</i></label><input name="ref"></div>
+  <div class="mact"><button type="button" class="btn" id="cdr">Simpan draft</button><button class="btn pri">Submit</button></div></form></div>`;
+  return bindChange(kind,null)}
+ const ok=e=>inScope(e)&&(kind==='update'?e.status!=='Delisted':kind==='delist'?e.status!=='Delisted':e.status==='Delisted');
+ const opts=ENT.filter(ok);
+ $('#ib').innerHTML=`<div class="split"><div class="card"><form id="cf" novalidate>
+  <div class="fld"><label>Entitas (ID Watchlist) <i>*</i></label><input name="id" list="entl" placeholder="Ketik ID atau nama…" value="${esc(pre||'')}" autocomplete="off"><datalist id="entl">${opts.map(e=>`<option value="${e.id}">${esc(e.name)} · ${e.cat}</option>`).join('')}</datalist></div>
+  ${kind==='update'?`<div class="fgrid"><div class="fld"><label>Subkategori baru</label><select name="sub"><option value="">Tidak berubah</option>${[...new Set(ROLE.scope.flatMap(c=>SUBC[c]))].map(x=>`<option>${esc(x)}</option>`).join('')}</select></div>
+   <div class="fld"><label>CIF baru</label><input name="cif" placeholder="Kosongkan jika tidak berubah"></div></div>
+   <div class="fld"><label>Tambah variasi alamat</label><input name="alamat" placeholder="Opsional: alamat dari sumber baru"></div>
+   <div class="fld"><label>Alasan perubahan <i>*</i></label><input name="r"></div>`
+  :`<div class="fld"><label>Alasan ${kind==='delist'?'delisting':'reactivation'} <i>*</i></label><select name="r"><option value="">Pilih alasan</option>${(kind==='delist'?['Surat pencabutan dari sumber','Salah identitas','Putusan pengadilan','Lainnya']:['Pengajuan ulang dari sumber','Koreksi delisting','Lainnya']).map(x=>`<option>${x}</option>`).join('')}</select></div>`}
+  <div class="fld"><label>No. surat / referensi <i>*</i></label><input name="ref" placeholder="mis. ND-901/UKA/2026"></div>
+  <div class="fld"><label>Catatan</label><textarea name="n"></textarea></div>
+  ${kind==='delist'?`<div class="alert i">${ic('db')}<span>Record Rejection List yang di-delist tetap ada dengan status Delisted dan dicatat juga di Negative List.</span></div>`:''}
+  ${kind==='react'?`<div class="alert i">${ic('lock')}<span>Hanya AML yang dapat melakukan reactivation dari Negative ke Rejection.</span></div>`:''}
+  <div class="mact"><button type="button" class="btn" id="cdr">Simpan draft</button><button class="btn pri">Submit</button></div></form></div>
+  <div class="card" id="ep"></div></div>`;
+ const f=$('#cf'),prev=()=>{const e=ENT.find(x=>x.id===f.id.value.trim().toUpperCase());
+  $('#ep').innerHTML=e?`<small style="color:var(--mute);font-size:11px">DATA SAAT INI</small><h2 style="margin:2px 0 8px">${esc(e.name)}</h2><div style="display:flex;gap:6px;margin-bottom:12px"><span class="badge b-b">${e.id} · ${e.cat}</span>${stBadge(e.status)}</div>
+   <dl class="kv"><dt>Primary key</dt><dd>${esc(e.key)}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>Alamat</dt><dd>${esc(e.vars[0].alamat)}</dd><dt>Sumber</dt><dd>${esc(e.vars.map(v=>v.src).join(', '))}</dd></dl>
+   ${!ok(e)?`<div class="alert e" style="margin-top:12px">${ic('warn')}<span><b>Tidak bisa diajukan</b>Status ${e.status} tidak sesuai untuk ${STYPE[kind].toLowerCase()}${inScope(e)?'':' atau di luar scope Anda'}.</span></div>`:openSub(e)?`<div class="alert w" style="margin-top:12px">${ic('hist')}<span><b>Sudah ada pengajuan berjalan</b>${openSub(e).id} · ${esc(openSub(e).status)}</span></div>`:''}`
+   :`<div class="empty">${ic('search')}<p>Pilih entitas untuk melihat data saat ini.</p></div>`};
+ f.id.oninput=prev;prev();bindChange(kind,ok);
+}
+function bindChange(kind,ok){
+ const f=$('#cf'),aml=roleKey==='aml';
+ const make=draft=>{f.querySelectorAll('.fld').forEach(w=>{w.classList.remove('bad');w.querySelector('.em')?.remove()});
+  const need=kind==='master'?['n','ref']:['id','r','ref'];let good=true;const bad=(n,m)=>{good=false;const w=f[n].closest('.fld');w.classList.add('bad');w.insertAdjacentHTML('beforeend',`<span class="em">${m}</span>`)};
+  if(!draft)need.forEach(n=>{if(!f[n].value.trim())bad(n,'Wajib diisi')});
+  let e=null;if(kind!=='master'){e=ENT.find(x=>x.id===f.id.value.trim().toUpperCase());if(f.id.value.trim()&&!e)bad('id','ID tidak ditemukan');else if(e&&!ok(e))bad('id','Status/scope tidak sesuai');else if(e&&openSub(e))bad('id','Sudah ada pengajuan berjalan: '+openSub(e).id);if(draft&&!e)bad('id','Pilih entitas dulu')}
+  if(kind==='update'&&e&&!draft&&!f.sub.value&&!f.cif.value.trim()&&!f.alamat.value.trim())bad('sub','Isi minimal satu perubahan');
+  if(!good)return toast('Masih ada field yang perlu diperbaiki');
+  const data=kind==='master'?{mt:f.mt.value,c:f.c.value,n:f.n.value.trim()}:kind==='update'?{sub:f.sub.value,cif:f.cif.value.trim(),alamat:f.alamat.value.trim(),r:f.r.value}:{r:f.r.value};
+  const s={id:newId(),type:STYPE[kind],title:STYPE[kind]+' · '+(e?e.id+' '+e.name:data.n),unit:aml?'AML Group':'Unit Kerja A',maker:ROLE.name,created:new Date(),
+   stage:draft?0:aml?3:1,status:draft?'Draft':aml?'AML Review':'Menunggu Checker',n:1,err:0,warn:0,letters:[f.ref.value||'—'],apply:{kind,id:e?.id,data}};
+  SUBS.unshift(s);log(draft?'Draft saved':'Submitted',s.id,s.title);toast(draft?'Draft disimpan di My Submission':s.id+' diajukan → '+s.status);selSub=s.id;pre=null;msf='all';go('mysub')};
+ f.onsubmit=ev=>{ev.preventDefault();make(false)};$('#cdr').onclick=()=>make(true);
 }
 function single(){
  const cats=ROLE.scope;if(!cats.includes(scCat))scCat=cats[0];
@@ -572,45 +603,60 @@ function bulk(){
  $('#pv').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('td[data-k]')){e.preventDefault();e.target.blur()}});
  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{BULK.rows.splice(+b.dataset.del,1);bulk()});
  $('#bc').onclick=()=>{BULK=null;bulk()};
- $('#bd').onclick=()=>{SUBS.unshift({id:'SUB-2611-0'+(15+SUBS.length),title:'Draft · '+BULK.name,unit:'Unit Kerja A',maker:ROLE.name,created:new Date(),stage:0,status:'Draft',n:BULK.rows.length,err:c.Error,warn:c.Warning,letters:[...new Set(BULK.rows.map(r=>r.no_surat).filter(Boolean))].slice(0,3)});log('Draft saved',BULK.name,BULK.rows.length+' baris');BULK=null;toast('Draft disimpan');go('appr')};
- $('#bs').onclick=()=>{const s={id:'SUB-2611-0'+(15+SUBS.length),title:BULK.name,unit:roleKey==='aml'?'AML Group':'Unit Kerja A',maker:ROLE.name,created:new Date(),stage:1,status:'Menunggu Checker',n:BULK.rows.length,err:0,warn:c.Warning,letters:[...new Set(BULK.rows.map(r=>r.no_surat).filter(Boolean))].slice(0,3)};SUBS.unshift(s);log('Submitted',s.id,s.n+' record');BULK=null;selSub=s.id;toast(s.id+' diajukan ke Checker');go('appr')};
+ $('#bd').onclick=()=>{SUBS.unshift({id:newId(),type:'Data baru',title:'Draft · '+BULK.name,unit:'Unit Kerja A',maker:ROLE.name,created:new Date(),stage:0,status:'Draft',n:BULK.rows.length,err:c.Error,warn:c.Warning,letters:[...new Set(BULK.rows.map(r=>r.no_surat).filter(Boolean))].slice(0,3)});log('Draft saved',BULK.name,BULK.rows.length+' baris');BULK=null;toast('Draft disimpan di My Submission');selSub=SUBS[0].id;msf='all';go('mysub')};
+ $('#bs').onclick=()=>{const aml=roleKey==='aml';const s={id:newId(),type:'Data baru',title:BULK.name,unit:aml?'AML Group':'Unit Kerja A',maker:ROLE.name,created:new Date(),stage:aml?3:1,status:aml?'AML Review':'Menunggu Checker',n:BULK.rows.length,err:0,warn:c.Warning,letters:[...new Set(BULK.rows.map(r=>r.no_surat).filter(Boolean))].slice(0,3)};SUBS.unshift(s);log('Submitted',s.id,s.n+' record');BULK=null;selSub=s.id;toast(s.id+' diajukan → '+s.status);msf='all';go('mysub')};
 }
 let vf='all';
 
-/* ================= SUBMISSION & APPROVAL ================= */
-let sf='all',selSub=null;
-const pendingFor=s=>(roleKey==='checker'&&(s.stage===1||s.stage===2)&&s.status!=='Dikembalikan')||(roleKey==='aml'&&s.stage===3)||(roleKey==='maker'&&['Draft','Dikembalikan'].includes(s.status));
+/* ================= MY SUBMISSION & APPROVAL ================= */
+let msf='all',asf='need',selSub=null;
 const sBadge=s=>`<span class="badge ${s==='Approved'?'b-ok':s==='Dikembalikan'?'b-e':s==='Draft'?'b-m':'b-w'}">${esc(s)}</span>`;
-function vAppr(){
- const vis=SUBS.filter(s=>roleKey==='aml'||s.unit==='Unit Kerja A');
- const groups={all:'Semua',mine:'Perlu tindakan saya',Draft:'Draft',prog:'Dalam proses',Approved:'Approved',Dikembalikan:'Dikembalikan'};
- const list=vis.filter(s=>sf==='all'||(sf==='mine'?pendingFor(s):sf==='prog'?/Menunggu|Review/.test(s.status):s.status===sf));
- if(!selSub||!vis.find(s=>s.id===selSub))selSub=(list[0]||vis[0])?.id;
- $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Submission &amp; Approval</h1><p class="sub" style="margin:0">Alur Maker → Checker → Signer → AML Review. Anda login sebagai <b>${ROLE.short}</b>.</p></div>${roleKey!=='checker'?`<button class="btn pri" id="nw">${ic('in')}Submission baru</button>`:''}</div>
- <div class="bar2">${Object.entries(groups).map(([k,l])=>{const n=k==='mine'?vis.filter(pendingFor).length:null;return `<span class="chip ${sf===k?'act':''}" data-sf="${k}">${l}${n?` <em class="badge b-w">${n}</em>`:''}</span>`}).join('')}</div>
- <div class="split"><div class="card list" style="padding:8px">${list.length?list.map(s=>`<div class="li ${s.id===selSub?'on':''}" data-s="${s.id}"><div style="flex:1"><b style="font-weight:600">${esc(s.title)}</b><br><small style="color:var(--mute)">${s.id} · ${esc(s.unit)} · ${s.n} record · ${dstr(s.created)}</small></div>${sBadge(s.status)}</div>`).join(''):`<div class="empty">Tidak ada submission di filter ini.</div>`}</div>
+function vSubs(mode){
+ const my=mode==='mysub';
+ const base=my?SUBS.filter(s=>mine(s)&&s.status!=='Approved'):SUBS.filter(s=>needsMe(s)||(s.status==='Approved'&&(roleKey==='aml'||s.unit==='Unit Kerja A')));
+ const groups=my?{all:'Semua',Draft:'Draft',Dikembalikan:'Dikembalikan',prog:'Dalam proses'}:{need:'Perlu approval saya',Approved:'Approved'};
+ const f=my?msf:asf;
+ const test=(s,k)=>k==='all'||(k==='prog'?/Menunggu|Review/.test(s.status):k==='need'?needsMe(s):s.status===k);
+ const list=base.filter(s=>test(s,f));
+ if(!selSub||!list.find(s=>s.id===selSub))selSub=list[0]?.id;
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>${my?'My Submission':'Approval'}</h1><p class="sub" style="margin:0">${my?'Draft dan pengajuan Anda yang sedang diproses. Pengajuan yang sudah disetujui pindah ke riwayat Approval.':'Pengajuan yang menunggu persetujuan Anda (Maker → Checker → Signer → AML Review) dan yang sudah disetujui.'} Login sebagai <b>${ROLE.short}</b>.</p></div>${my?`<button class="btn pri" id="nw">${ic('in')}Submit Data</button>`:''}</div>
+ <div class="bar2">${Object.entries(groups).map(([k,l])=>{const n=base.filter(s=>test(s,k)).length;return `<span class="chip ${f===k?'act':''}" data-sf="${k}">${l} <em class="badge ${k==='need'||k==='Dikembalikan'?'b-w':'b-m'}">${n}</em></span>`}).join('')}</div>
+ <div class="split"><div class="card list" style="padding:8px">${list.length?list.map(s=>`<div class="li ${s.id===selSub?'on':''}" data-s="${s.id}"><div style="flex:1"><b style="font-weight:600">${esc(s.title)}</b><br><small style="color:var(--mute)">${s.id} · ${esc(s.type)} · ${esc(s.unit)} · ${s.n} record · ${dstr(s.created)}</small></div>${sBadge(s.status)}</div>`).join(''):`<div class="empty">${ic('ok')}<p>${my?'Tidak ada pengajuan di filter ini.':f==='need'?'Tidak ada yang menunggu approval Anda.':'Belum ada pengajuan yang disetujui.'}</p></div>`}</div>
  <div class="card" id="sd"></div></div>`;
- document.querySelectorAll('[data-sf]').forEach(c=>c.onclick=()=>{sf=c.dataset.sf;selSub=null;vAppr()});
- document.querySelectorAll('[data-s]').forEach(c=>c.onclick=()=>{selSub=c.dataset.s;vAppr()});
- const nw=$('#nw');if(nw)nw.onclick=()=>go('input');
- subDetail();
+ document.querySelectorAll('[data-sf]').forEach(c=>c.onclick=()=>{my?msf=c.dataset.sf:asf=c.dataset.sf;selSub=null;vSubs(mode)});
+ document.querySelectorAll('[data-s]').forEach(c=>c.onclick=()=>{selSub=c.dataset.s;vSubs(mode)});
+ const nw=$('#nw');if(nw)nw.onclick=()=>{subType='new';go('input')};
+ subDetail(mode);
 }
-function subDetail(){
- const s=SUBS.find(x=>x.id===selSub);if(!s){$('#sd').innerHTML='<div class="empty">Pilih submission</div>';return}
- const can=pendingFor(s);
- $('#sd').innerHTML=`<div class="ch"><div><small style="color:var(--mute)">${s.id}</small><h2 style="font-size:17px">${esc(s.title)}</h2></div><div class="sp"></div>${sBadge(s.status)}</div>
+function applySub(s){const a=s.apply;if(!a)return;
+ if(a.kind==='master'){a.data.mt==='src'?SOURCES.push(a.data.n):SUBC[a.data.c].push(a.data.n);return}
+ const e=ENT.find(x=>x.id===a.id);if(!e)return;const d=a.data;
+ if(a.kind==='update'){if(d.sub)e.sub=d.sub;if(d.cif)e.cif=d.cif;if(d.alamat)e.vars.push({...e.vars[0],alamat:d.alamat,src:'Pengajuan '+s.id,ref:s.letters[0]})}
+ if(a.kind==='delist')e.status='Delisted';if(a.kind==='react')e.status='Active';
+ e.updated=new Date();e.hist.push({t:new Date(),a:{update:'Updated',delist:'Delisted',react:'Reactivated'}[a.kind],u:'via '+s.id,r:d.r||''})}
+function subDetail(mode){
+ const my=mode==='mysub',s=SUBS.find(x=>x.id===selSub);if(!s){$('#sd').innerHTML='<div class="empty">Pilih pengajuan</div>';return}
+ const d=s.apply?.data||{};
+ $('#sd').innerHTML=`<div class="ch"><div><small style="color:var(--mute)">${s.id} · ${esc(s.type)}</small><h2 style="font-size:17px">${esc(s.title)}</h2></div><div class="sp"></div>${sBadge(s.status)}</div>
  <div class="steps">${STAGES.map((l,i)=>`<div class="st ${s.status==='Approved'||i<s.stage?'done':i===s.stage&&s.status!=='Draft'&&s.status!=='Dikembalikan'?'cur':''}" data-n="${i+1}">${l}</div>`).join('')}</div>
- ${s.note?`<div class="alert e" style="margin-top:12px">${ic('warn')}<span><b>Catatan pengembalian</b>${esc(s.note)}</span></div>`:''}
- <dl class="kv" style="margin:16px 0"><dt>Unit pengaju</dt><dd>${esc(s.unit)}</dd><dt>Maker</dt><dd>${esc(s.maker)}</dd><dt>Jumlah record</dt><dd>${s.n}</dd><dt>Surat pengajuan</dt><dd>${s.letters.map(esc).join(', ')}</dd><dt>Hasil validasi</dt><dd>${s.err?`<span class="badge b-e">${s.err} error</span> `:''}${s.warn?`<span class="badge b-w">${s.warn} warning</span> `:''}${!s.err&&!s.warn?'<span class="badge b-ok">Semua valid</span>':''}</dd></dl>
- <div class="tw" style="max-height:220px"><table class="x"><thead><tr><th>#</th><th>NAMA</th><th>KATEGORI</th><th>PRIMARY KEY</th><th>VALIDASI</th></tr></thead><tbody>${Array.from({length:Math.min(5,s.n)},(_,i)=>{const st=i<s.err?'Error':i<s.err+s.warn?'Warning':'Valid';return `<tr><td>${i+1}</td><td>${NAMES[(i*7+s.n)%NAMES.length]}</td><td>${/DTTOT/.test(s.title)?'DTTOT':/Negative|Fraud/.test(s.title)?'Negative List':'Scammer'}</td><td>${/DTTOT/.test(s.title)?'DT-0'+(300+i):'3271'+String(1e11+i*7919).slice(0,12)}</td><td>${vBadge(st)}${st==='Warning'?' <small style="color:var(--warn)">mismatch Big Data</small>':''}</td></tr>`}).join('')}</tbody></table></div>
- <p class="note">Menampilkan 5 dari ${s.n} record.</p>
- <div class="mact" style="flex-wrap:wrap">${can?(roleKey==='maker'?`<button class="btn" id="wd">Withdraw</button><button class="btn pri" id="ed2">Buka &amp; perbaiki</button>`:`<button class="btn dan" id="rj">${roleKey==='aml'?'Tahan / koreksi':'Kembalikan ke Maker'}</button><button class="btn pri" id="apv">${roleKey==='aml'?'Setujui → Ready for distribution':s.stage===1?'Setujui sebagai Checker':'Setujui sebagai Signer'}</button>`):`<span class="lock">${ic('lock')}${s.status==='Approved'?'Selesai: data masuk Watchlist Database.':'Tidak ada tindakan untuk role Anda di tahap ini.'}</span>`}</div>`;
- const apv=$('#apv');if(apv)apv.onclick=()=>{s.stage++;s.status=s.stage===2?'Menunggu Signer':s.stage===3?'AML Review':'Approved';if(s.stage===4)s.stage=4;log('Approved',s.id,STAGES[s.stage-1]);toast(s.id+' disetujui → '+s.status);vAppr()};
+ ${s.note?`<div class="alert e" style="margin-top:12px">${ic('warn')}<span><b>Catatan</b>${esc(s.note)}</span></div>`:''}
+ <dl class="kv" style="margin:16px 0"><dt>Jenis pengajuan</dt><dd>${esc(s.type)}</dd><dt>Unit pengaju</dt><dd>${esc(s.unit)}</dd><dt>Maker</dt><dd>${esc(s.maker)}</dd><dt>Surat / referensi</dt><dd>${s.letters.map(esc).join(', ')}</dd>
+ ${s.apply&&s.apply.kind!=='master'?`<dt>Entitas</dt><dd>${esc(s.apply.id||'—')}</dd>`:''}
+ ${s.apply?.kind==='update'?`<dt>Perubahan</dt><dd>${[d.sub&&'Subkategori → '+esc(d.sub),d.cif&&'CIF → '+esc(d.cif),d.alamat&&'Variasi alamat baru: '+esc(d.alamat)].filter(Boolean).join('<br>')||'—'}</dd>`:''}
+ ${s.apply?.kind==='master'?`<dt>Master data</dt><dd>${d.mt==='src'?'Source':'Subcategory ('+esc(d.c)+')'}: ${esc(d.n)}</dd>`:''}
+ ${d.r?`<dt>Alasan</dt><dd>${esc(d.r)}</dd>`:''}
+ ${!s.apply?`<dt>Jumlah record</dt><dd>${s.n}</dd><dt>Hasil validasi</dt><dd>${s.err?`<span class="badge b-e">${s.err} error</span> `:''}${s.warn?`<span class="badge b-w">${s.warn} warning</span> `:''}${!s.err&&!s.warn?'<span class="badge b-ok">Semua valid</span>':''}</dd>`:''}</dl>
+ ${!s.apply?`<div class="tw" style="max-height:220px"><table class="x"><thead><tr><th>#</th><th>NAMA</th><th>KATEGORI</th><th>PRIMARY KEY</th><th>VALIDASI</th></tr></thead><tbody>${Array.from({length:Math.min(5,s.n)},(_,i)=>{const st=i<s.err?'Error':i<s.err+s.warn?'Warning':'Valid';return `<tr><td>${i+1}</td><td>${NAMES[(i*7+s.n)%NAMES.length]}</td><td>${/DTTOT/.test(s.title)?'DTTOT':/Negative|Fraud/.test(s.title)?'Negative List':'Scammer'}</td><td>${/DTTOT/.test(s.title)?'DT-0'+(300+i):'3271'+String(1e11+i*7919).slice(0,12)}</td><td>${vBadge(st)}${st==='Warning'?' <small style="color:var(--warn)">mismatch Big Data</small>':''}</td></tr>`}).join('')}</tbody></table></div><p class="note">Menampilkan ${Math.min(5,s.n)} dari ${s.n} record.</p>`:''}
+ <div class="mact" style="flex-wrap:wrap">${my?(['Draft','Dikembalikan'].includes(s.status)?`<button class="btn" id="wd">Withdraw</button><button class="btn pri" id="ed2">${s.status==='Draft'?'Lanjutkan & submit':'Perbaiki & ajukan ulang'}</button>`:`<span class="lock">${ic('lock')}Sedang di tahap ${STAGES[s.stage]}. Tidak bisa diubah selama proses approval.</span>`)
+  :(needsMe(s)?`<button class="btn dan" id="rj">${roleKey==='aml'?'Tahan / koreksi':'Kembalikan ke Maker'}</button><button class="btn pri" id="apv">${roleKey==='aml'?'Setujui → Ready for distribution':s.stage===1?'Setujui sebagai Checker':'Setujui sebagai Signer'}</button>`:`<span class="lock">${ic('ok')}Disetujui. Perubahan sudah diterapkan ke Watchlist Database.</span>`)}</div>`;
+ const apv=$('#apv');if(apv)apv.onclick=()=>{s.stage++;s.status=s.stage===2?'Menunggu Signer':s.stage===3?'AML Review':'Approved';if(s.status==='Approved'){applySub(s);s.note=null}log('Approved',s.id,STAGES[s.stage-1]);toast(s.id+' disetujui → '+s.status);vSubs(mode)};
  const rj=$('#rj');if(rj)rj.onclick=()=>{openModal(`<h2>${roleKey==='aml'?'Tahan untuk koreksi':'Kembalikan ke Maker'}</h2><p class="sub" style="margin-top:4px">${s.id} · alasan wajib diisi dan tercatat di audit trail.</p><div class="fld"><label>Alasan <i>*</i></label><textarea id="rr"></textarea></div><div class="mact"><button class="btn" data-x>Batal</button><button class="btn dan" id="rok">Kirim</button></div>`);
   $('#modal').querySelector('[data-x]').onclick=closeModal;$('#rok').onclick=()=>{const v=$('#rr').value.trim();if(!v){$('#rr').closest('.fld').classList.add('bad');return}
-   if(roleKey==='aml'){s.note='AML: '+v;toast('Catatan koreksi ditambahkan; data tetap di AML Review')}else{s.stage=0;s.status='Dikembalikan';s.note=v;toast(s.id+' dikembalikan ke Maker')}log('Returned',s.id,v);closeModal();vAppr()}};
- const wd=$('#wd');if(wd)wd.onclick=()=>{SUBS.splice(SUBS.indexOf(s),1);log('Withdrawn',s.id,'');toast(s.id+' ditarik');selSub=null;vAppr()};
- const e2=$('#ed2');if(e2)e2.onclick=()=>{BULK={name:s.title,rows:sampleRows()};inTab='bulk';go('input')};
+   if(roleKey==='aml'){s.note='AML: '+v;toast('Catatan koreksi ditambahkan; tetap di AML Review')}else{s.stage=0;s.status='Dikembalikan';s.note=v;toast(s.id+' dikembalikan ke Maker')}log('Returned',s.id,v);closeModal();vSubs(mode)}};
+ const wd=$('#wd');if(wd)wd.onclick=()=>{SUBS.splice(SUBS.indexOf(s),1);log('Withdrawn',s.id,'');toast(s.id+' ditarik');selSub=null;vSubs(mode)};
+ const e2=$('#ed2');if(e2)e2.onclick=()=>{
+  if(s.apply&&s.apply.kind!=='master'||s.apply?.kind==='master'){s.stage=s.unit==='AML Group'?3:1;s.status=s.stage===3?'AML Review':'Menunggu Checker';s.note=null;log('Submitted',s.id,'Diajukan ulang');toast(s.id+' diajukan → '+s.status);return vSubs(mode)}
+  SUBS.splice(SUBS.indexOf(s),1);BULK={name:s.title.replace('Draft · ',''),rows:sampleRows()};subType='new';inTab='bulk';go('input')};
 }
 
 /* ================= UPLOAD WATCHLIST ================= */
@@ -663,7 +709,7 @@ let mTab='cat';
 function vMaster(){
  const aml=roleKey==='aml';
  const T={cat:'Category',sub:'Subcategory',src:'Source',dict:'Data Dictionary',user:'User & Role'};
- $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Master Data &amp; Administration</h1><p class="sub" style="margin:0">${aml?'Dikelola oleh AML Group sebagai owner standar data.':'Hanya-baca untuk role Anda.'}</p></div>
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Master Data &amp; Administration</h1><p class="sub" style="margin:0">Tampilan hanya-baca. Perubahan master data diajukan lewat Submit Data dan disetujui AML Group.</p></div>
  <div class="tabs" id="mt">${Object.entries(T).map(([k,l])=>`<button data-t="${k}" class="${mTab===k?'on':''}">${l}</button>`).join('')}</div></div><div class="card" id="mb"></div>`;
  $('#mt').onclick=e=>{const b=e.target.closest('button');if(b){mTab=b.dataset.t;vMaster()}};
  let head,rows;
@@ -672,13 +718,10 @@ function vMaster(){
  if(mTab==='src'){head=['SUMBER','JENIS','STATUS'];rows=SOURCES.map(s=>[s,/BRI|Unit/.test(s)?'Internal':'Eksternal','Active'])}
  if(mTab==='dict'){head=['FIELD','LABEL','TIPE ATRIBUT','FORMAT',...CATS.map(c=>'WAJIB · '+c.toUpperCase())];rows=DICT.map(([k,l,t,f])=>[k,l,t,f,...CATS.map(c=>MAND[c].includes(k)?'Ya':'—')])}
  if(mTab==='user'){head=['USER','GROUP (SCOPE DATA)','ROLE (AKSI)','STATUS'];rows=[['Rina Anggraeni','AML Group · semua kategori','AML Admin','Active'],['Siti Maharani','Unit Kerja A · Scammer, Negative List','Maker','Active'],['Bagus Pranoto','Unit Kerja A · Scammer, Negative List','Checker/Signer','Active'],['Doni Pratama','Unit Kerja B · Negative List','Maker','Active'],['Audit Internal','Read-only · semua','Auditor','Active']]}
- $('#mb').innerHTML=`<div class="bar2"><div class="sp" style="flex:1"></div>${aml?`<button class="btn pri" id="madd">${ic('in')}Tambah ${T[mTab]}</button>`:`<span class="lock">${ic('lock')}Hanya-baca</span>`}</div>
- <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}${aml?'<th>ACTION</th>':''}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>v==='Active'?`<td>${stBadge('Active')}</td>`:`<td>${esc(v)}</td>`).join('')}${aml?'<td><button class="link" data-ed>Edit</button></td>':''}</tr>`).join('')}</tbody></table></div>
+ $('#mb').innerHTML=`<div class="bar2"><div class="sp" style="flex:1"></div><span class="lock">${ic('lock')}Hanya-baca</span>${aml&&(mTab==='src'||mTab==='sub')?`<button class="btn pri" id="madd">${ic('in')}Ajukan perubahan via Submit Data</button>`:''}</div>
+ <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>v==='Active'?`<td>${stBadge('Active')}</td>`:`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
  ${mTab==='dict'?'<p class="note">Mandatory fields configurable per kategori. Satu data dictionary untuk common dan category-specific attributes.</p>':''}`;
- const ma=$('#madd');if(ma)ma.onclick=()=>{openModal(`<h2>Tambah ${T[mTab]}</h2><form id="mf"><div class="fld"><label>Nama <i>*</i></label><input name="n"></div>${mTab==='sub'?`<div class="fld"><label>Kategori induk</label><select name="c">${CATS.map(c=>`<option>${c}</option>`).join('')}</select></div>`:''}<div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn pri">Simpan</button></div></form>`);
-  $('#modal').querySelector('[data-x]').onclick=closeModal;$('#mf').onsubmit=ev=>{ev.preventDefault();const n=ev.target.n.value.trim();if(!n){ev.target.n.closest('.fld').classList.add('bad');return}
-   if(mTab==='src')SOURCES.push(n);else if(mTab==='sub')SUBC[ev.target.c.value].push(n);log('Master data added',T[mTab],n);closeModal();toast(T[mTab]+' "'+n+'" ditambahkan');vMaster()}};
- document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>toast('Form edit master data (sama seperti tambah)'));
+ const ma=$('#madd');if(ma)ma.onclick=()=>{subType='master';go('input')};
 }
 
 /* ---------- start ---------- */
