@@ -87,7 +87,7 @@ h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:0}
 .search input{border:0;outline:0;background:none;flex:1;font-size:14px}
 .chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:13px;cursor:pointer;white-space:nowrap}
 .chip.act{border-color:var(--blue2);background:var(--sky);color:var(--blue2);font-weight:500}
-.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px #0003;padding:6px;cursor:default;font-weight:400;color:var(--ink)}
+.menu{max-height:360px;overflow:auto;position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px #0003;padding:6px;cursor:default;font-weight:400;color:var(--ink)}
 .menu label{display:flex;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;cursor:pointer}.menu label:hover{background:var(--head)}
 .menu .mf{display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:4px;padding:8px 6px 2px}
 .menu input[type=checkbox]{accent-color:var(--blue);width:16px;height:16px}
@@ -227,46 +227,89 @@ const today=new Date(2026,10,25);const dstr=d=>d.toLocaleDateString('id-ID',{day
 const daysAgo=n=>{const d=new Date(today);d.setDate(d.getDate()-n);return d};
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toasts').append(t);setTimeout(()=>t.remove(),3200)}
 const stBadge=s=>`<span class="badge ${s==='Active'?'b-ok':s==='Delisted'?'b-e':'b-m'}">${esc(s)}</span>`;
+const catBadge=c=>`<span class="badge ${c==='Rejection List'?'b-b':c==='Negative List'?'b-w':'b-m'}">${esc(c)}</span>`;
 const vBadge=s=>`<span class="badge ${s==='Valid'?'b-ok':s==='Warning'?'b-w':'b-e'}">${esc(s)}</span>`;
 
 /* ---------- master data ---------- */
-const CATS=['DTTOT','DPPSPM','Scammer','Negative List'];
-const KEY={DTTOT:'Kode Dugaan',DPPSPM:'Kode Dugaan',Scammer:'NIK','Negative List':'NIK'};
-const SUBC={DTTOT:['Terorisme - Individu','Terorisme - Organisasi'],DPPSPM:['Pendanaan Proliferasi'],Scammer:['Penipuan Online','Social Engineering','Phishing'],'Negative List':['Fraud Internal','Kredit Macet','Eks Rejection List']};
-const SOURCES=['PPATK','Densus 88','OJK','Unit Fraud BRI','Kepolisian','Unit Kerja Wilayah'];
+const SRC={
+ 'DTTOT & DPPSPM':['DENSUS 88','DPPSPM','DTTOT','INFORMASI TERORIS PPATK','SANCTIONS LISTS'],
+ 'Scammer':['BEC PPATK','SCAMMER AML','SCAMMER BANK RAYA','SCAMMER BI','SCAMMER BRI - CASE MONEY CHANGER','SCAMMER CEX','SCAMMER ITF','SCAMMER KPK','SCAMMER OJK','SCAMMER ORD','SCAMMER POLRI','SCAMMER PPATK','SCAMMER PUPN','SCAMMER REQUEST PPATK','TP SIBER - BANK BCA','TP SIBER - BANK BNI','TP SIBER - BANK DKI','TP SIBER - BANK JATIM','TP SIBER - BANK MASPION','TP SIBER - BANK MNC','TP SIBER - BANK NTB','TP SIBER - BANK WOORY','TP SIBER - SEKURITAS','TP SIBER - TRIMEGAH'],
+ 'Judol':['INFORMASI JUDOL BI','INFORMASI JUDOL BRI - CYBER PATROL','INFORMASI JUDOL BRI - DFR','INFORMASI JUDOL BRI - ISC','INFORMASI JUDOL BRI - ITF','INFORMASI JUDOL BRI - ORD','INFORMASI JUDOL KEJAKSAAN','INFORMASI JUDOL KOMINFO','INFORMASI JUDOL OJK','INFORMASI JUDOL POLRI','INFORMASI JUDOL PPATK'],
+ 'Negative News':['Negative News'],
+ 'Blokir':['BLOKIR BARESKRIM','BLOKIR BEA CUKAI','BLOKIR BI','BLOKIR BNN','BLOKIR BRI','BLOKIR DENSUS 88','BLOKIR DFR','BLOKIR DJP','BLOKIR ITF','BLOKIR KANTOR POS','BLOKIR KEJAKSAAN','BLOKIR KEMENTRIAN KEUANGAN','BLOKIR KOMINFO','BLOKIR KPK','Blokir KPK RI','BLOKIR LAIN-LAIN','BLOKIR OJK','BLOKIR ORD','BLOKIR PENIPUAN','BLOKIR POLRI','BLOKIR PPATK'],
+ 'Delisting Rejection List':['DELISTING - JUDOL BRI CYBER PATROL','DELISTING - JUDOL OJK','DELISTING - JUDOL POLRI','DELISTING - SCAMMER ORD','DELISTING BEC PPATK','DELISTING INFORMASI JUDOL BI','DELISTING INFORMASI JUDOL OJK','DELISTING INFORMASI JUDOL POLRI','DELISTING JUDOL ORD TINGKAT 2','DELISTING SANCTION LIST','DELISTING SCAMMER - PENGGELAPAN','DELISTING SCAMMER BRI','DELISTING SCAMMER ITF','DELISTING SCAMMER OJK','DELISTING SCAMMER ORD','DELISTING SCAMMER POLRI','DELISTING SCAMMER REQUEST PPATK','DELISTING TP SIBER - SEKURITAS'],
+ 'SIPENDAR':['SIPENDAR','SIPENDAR NASABAH'],
+ 'Bank Koresponden':['SCAMMER BEC','SCAMMER CANCELLATION','SCAMMER REMITTANCE'],
+ 'Informasi Lainnya':['INFO JUDOL LAINNYA','INFORMASI AUDIT PPATK','INFORMASI PPATK','INFORMASI CASE NARKOTIKA','SAFEWATCH INTERNATIONAL'],
+ 'Delisting Akhir':['Delisting Akhir']};
+const SUBC={'Rejection List':['DTTOT & DPPSPM','Scammer','Judol'],'Negative List':['Negative News','Blokir','Delisting Rejection List','SIPENDAR','Bank Koresponden','Informasi Lainnya'],'Delisting Akhir':['Delisting Akhir']};
+const CATS=['Rejection List','Negative List'],ALLCATS=[...CATS,'Delisting Akhir'];
+const catOf=sub=>Object.keys(SUBC).find(c=>SUBC[c].includes(sub));
+let SOURCES=[...new Set(Object.values(SRC).flat())];
+const KEY=new Proxy({},{get:(_,k)=>k==='DTTOT & DPPSPM'?'Kode Dugaan':'NIK'});
+const MAND=new Proxy({},{get:(_,k)=>k==='DTTOT & DPPSPM'?['nama','kode','tempat_lahir','tgl_lahir','sumber','no_surat']:k==='Scammer'?['nama','nik','sumber','no_surat','tgl_lapor']:['nama','nik','sumber','no_surat']});
 const UNITS=['Unit Kerja A','Unit Kerja B','Unit Kerja C','AML Group'];
 const NAMES=['Andi Saputra','Budi Santoso','Citra Dewi','Darma Wijaya','Eko Prasetyo','Fitri Handayani','Gilang Ramadhan','Hendra Kusuma','Indah Permata','Joko Susilo','Kartika Sari','Lukman Hakim','Maya Anggraini','Nanda Pratama','Oki Firmansyah','Putri Lestari','Rizky Maulana','Sari Wulandari','Taufik Hidayat','Umar Faruq','Vina Melati','Wahyu Nugroho','Yusuf Abdullah','Zahra Amalia'];
 const CITIES=['Jakarta','Bandung','Surabaya','Medan','Depok','Makassar','Semarang','Bekasi'];
-const MAND={DTTOT:['nama','kode','tempat_lahir','tgl_lahir','sumber','no_surat'],DPPSPM:['nama','kode','tgl_lahir','sumber','no_surat'],Scammer:['nama','nik','sumber','no_surat','tgl_lapor'],'Negative List':['nama','nik','sumber','no_surat']};
-const DICT=[['nama','Nama','Common','Teks'],['alias','Alias Nama','Common','Teks'],['nik','NIK','Category-specific','16 digit'],['kode','Kode Dugaan','Category-specific','Teks'],['cif','CIF','Common','Teks'],['rek','No. Rekening','Common','Angka'],['tempat_lahir','Tempat Lahir','Common','Teks'],['tgl_lahir','Tanggal Lahir','Common','Tanggal'],['alamat','Alamat','Common','Teks'],['kwn','Kewarganegaraan','Common','Teks'],['sumber','Sumber Data','Common','Master: Source'],['no_surat','No. Surat / Referensi','Common','Teks'],['tgl_lapor','Tanggal Dilaporkan','Common','Tanggal']];
+const DICT=[['nama','Nama','Common','Teks'],['alias','Alias Nama','Common','Teks'],['nik','NIK','Subkategori-specific','16 digit'],['kode','Kode Dugaan','Subkategori-specific','Teks'],['cif','CIF','Common','Teks'],['rek','No. Rekening','Common','Angka'],['tempat_lahir','Tempat Lahir','Common','Teks'],['tgl_lahir','Tanggal Lahir','Common','Tanggal'],['alamat','Alamat','Common','Teks'],['kwn','Kewarganegaraan','Common','Teks'],['sumber','Sumber Data','Common','Master: Source'],['no_surat','No. Surat / Referensi','Common','Teks'],['tgl_lapor','Tanggal Dilaporkan','Common','Tanggal']];
 
 /* ---------- sample data ---------- */
-let ENT=[];
-for(let i=1;i<=64;i++){
- const cat=CATS[i%4===0?3:i%4===1?2:i%4===2?0:(rnd()<.5?1:3)];
- const n=pick(NAMES),nVar=rnd()<.3,aVar=rnd()<.35,isKD=KEY[cat]==='Kode Dugaan';
- const status=rnd()<.8?'Active':rnd()<.5?'Inactive':'Delisted';
- const src=pick(SOURCES),src2=pick(SOURCES.filter(s=>s!==src));
+let ENT=[],VID=1,EID=0;
+const newEid=()=>'WL-'+String(++EID).padStart(5,'0');
+const GEN=['DTTOT & DPPSPM','DTTOT & DPPSPM','Scammer','Scammer','Scammer','Judol','Judol','Blokir','Blokir','Blokir','Negative News','SIPENDAR','Bank Koresponden','Informasi Lainnya'];
+for(let i=1;i<=60;i++){
+ const sub=pick(GEN),cat=catOf(sub);
+ const n=pick(NAMES),nVar=rnd()<.3,aVar=rnd()<.35,isKD=KEY[sub]==='Kode Dugaan';
+ const status=rnd()<.88?'Active':'Inactive';
+ const src=pick(SRC[sub]),src2=SRC[sub].length>1?pick(SRC[sub].filter(x=>x!==src)):src;
  const nik='3'+String(Math.floor(rnd()*1e15)).padStart(15,'0');
- const e={id:'WL-'+String(i).padStart(5,'0'),cat,sub:pick(SUBC[cat]),status,unit:pick(UNITS),
-  key:isKD?(cat==='DTTOT'?'DT-':'DP-')+String(100+i).padStart(4,'0'):nik,
+ const e={id:newEid(),cat,sub,status,unit:pick(UNITS),
+  key:isKD?'KD-'+String(100+i).padStart(4,'0'):nik,
   nik:isKD?(rnd()<.5?null:nik):nik,cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):null,rek:!isKD&&rnd()<.6?'0'+Math.floor(rnd()*1e14):null,
-  kwn:isKD?pick(['Indonesia','Malaysia','Filipina',null]):'Indonesia',created:daysAgo(Math.floor(rnd()*300)+20),updated:daysAgo(Math.floor(rnd()*20)),
+  kwn:isKD?pick(['Indonesia','Malaysia','Filipina',null]):'Indonesia',created:daysAgo(Math.floor(rnd()*300)+20),updated:daysAgo(Math.floor(rnd()*20)+5),
   vars:[]};
  const tl=pick(CITIES),dob=new Date(1965+Math.floor(rnd()*35),Math.floor(rnd()*12),1+Math.floor(rnd()*27));
- e.vars.push({nama:n,alias:isKD&&rnd()<.6?n.split(' ')[0]+' alias '+pick(['Abu','Bang','Pak']):null,tempat:tl,tgl:dob,alamat:'Jl. '+pick(['Merdeka','Sudirman','Diponegoro','Gatot Subroto','Ahmad Yani'])+' No.'+(1+Math.floor(rnd()*90))+', '+tl,src,ref:'B-'+(100+i)+'/PPATK/2026',tglLapor:daysAgo(Math.floor(rnd()*200)+25)});
- if(nVar||aVar)e.vars.push({...e.vars[0],nama:nVar?n.split(' ')[0]+' '+n.split(' ')[1][0]+'.':e.vars[0].nama,alamat:aVar?'Jl. '+pick(['Kenanga','Melati','Anggrek'])+' No.'+(1+Math.floor(rnd()*50))+', '+pick(CITIES):e.vars[0].alamat,src:src2,ref:'ND-'+(200+i)+'/UKA/2026'});
+ e.vars.push({vid:VID++,nama:n,alias:isKD&&rnd()<.6?n.split(' ')[0]+' alias '+pick(['Abu','Bang','Pak']):null,tempat:tl,tgl:dob,alamat:'Jl. '+pick(['Merdeka','Sudirman','Diponegoro','Gatot Subroto','Ahmad Yani'])+' No.'+(1+Math.floor(rnd()*90))+', '+tl,src,ref:'B-'+(100+i)+'/PPATK/2026',tglLapor:daysAgo(Math.floor(rnd()*200)+25)});
+ if(nVar||aVar)e.vars.push({...e.vars[0],vid:VID++,nama:nVar?n.split(' ')[0]+' '+n.split(' ')[1][0]+'.':e.vars[0].nama,alamat:aVar?'Jl. '+pick(['Kenanga','Melati','Anggrek'])+' No.'+(1+Math.floor(rnd()*50))+', '+pick(CITIES):e.vars[0].alamat,src:src2,ref:'ND-'+(200+i)+'/UKA/2026'});
  e.name=e.vars[0].nama;
  e.hist=[{t:e.created,a:'Created',u:'Maker · '+e.unit,r:'Input awal melalui '+(rnd()<.5?'Bulk Upload':'Single Entry')},{t:new Date(e.created.getTime()+864e5),a:'Approved',u:'AML Review · Rina A.',r:'Lolos validasi'}];
- if(e.vars.length>1)e.hist.push({t:new Date(Math.min(e.created.getTime()+40*864e5,daysAgo(3).getTime())),a:'Variation added',u:'Maker · '+e.unit,r:'Variasi '+(nVar?'nama':'alamat')+' dari '+src2});
- if(status==='Delisted')e.hist.push({t:e.updated,a:'Delisted',u:'AML Admin',r:'Surat pencabutan dari sumber'});
+ if(e.vars.length>1)e.hist.push({t:new Date(Math.min(e.created.getTime()+40*864e5,daysAgo(5).getTime())),a:'Variation added',u:'Maker · '+e.unit,r:'Variasi '+(nVar?'nama':'alamat')+' dari '+src2});
  ENT.push(e);
 }
+/* ---------- delisting engine ---------- */
+const live=e=>e.vars.filter(v=>!v.del);
+function delistVars(e,vids,why,by,t=new Date()){
+ const sel=e.vars.filter(v=>vids.includes(v.vid)&&!v.del);if(!sel.length)return null;
+ if(e.cat==='Rejection List'){
+  sel.forEach(v=>{v.del=true});
+  const ne={...e,id:newEid(),cat:'Negative List',sub:'Delisting Rejection List',status:'Active',origin:e.id,created:t,updated:t,
+   vars:sel.map(v=>({...v,vid:VID++,del:false,orig:v.src,origVid:v.vid,src:'DELISTING - '+v.src})),
+   hist:[{t,a:'Created (delisting)',u:by,r:'Dari '+e.id+' (Rejection List) · '+why}]};
+  ne.name=ne.vars[0].nama;ENT.push(ne);
+  if(!live(e).length)e.status='Delisted';e.updated=t;
+  e.hist.push({t,a:live(e).length?'Partial delisting':'Delisted',u:by,r:sel.length+' variasi → '+ne.id+' (Negative List) · '+why});
+  return ne}
+ if(e.cat==='Negative List'){
+  if(sel.length===live(e).length){e.prevSub=e.sub;e.cat='Delisting Akhir';e.sub='Delisting Akhir';e.status='Delisted';e.updated=t;e.hist.push({t,a:'Delisting Akhir',u:by,r:'Keluar dari Rejection & Negative List · '+why});return e}
+  e.vars=e.vars.filter(v=>!vids.includes(v.vid));e.updated=t;
+  const ne={...e,id:newEid(),cat:'Delisting Akhir',sub:'Delisting Akhir',prevSub:e.sub,status:'Delisted',splitFrom:e.id,created:t,updated:t,vars:sel,origin:null,
+   hist:[{t,a:'Delisting Akhir',u:by,r:'Partial dari '+e.id+' · '+why}]};ne.name=ne.vars[0].nama;ENT.push(ne);
+  e.hist.push({t,a:'Partial delisting',u:by,r:sel.length+' variasi → '+ne.id+' (Delisting Akhir) · '+why});return ne}
+}
+function restoreToRejection(ne,why,by,t=new Date()){
+ const o=ENT.find(x=>x.id===ne.origin);if(!o)return;
+ ne.vars.forEach(v=>{const ov=o.vars.find(x=>x.vid===v.origVid);if(ov)ov.del=false});
+ o.status='Active';o.updated=t;o.hist.push({t,a:'Dikembalikan ke Rejection List',u:by,r:'Dari '+ne.id+' · '+why});
+ ne.status='Inactive';ne.restored=true;ne.updated=t;ne.hist.push({t,a:'Dikembalikan ke Rejection List',u:by,r:'Record dinonaktifkan, variasi aktif kembali di '+o.id+' · '+why});
+}
+// seed: some delisting history
+ENT.filter(e=>e.cat==='Rejection List').slice(0,5).forEach((e,i)=>delistVars(e,i===1&&e.vars.length>1?[e.vars[1].vid]:e.vars.map(v=>v.vid),'Surat pencabutan dari sumber','AML Admin',daysAgo(10+i)));
+ENT.filter(e=>e.cat==='Negative List'&&e.sub!=='Delisting Rejection List').slice(0,2).forEach((e,i)=>delistVars(e,e.vars.map(v=>v.vid),'Putusan pengadilan','AML Admin',daysAgo(6+i)));
 let SUBS=[
  {id:'SUB-2611-014',type:'Data baru',title:'Penambahan Scammer November',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(1),stage:1,status:'Menunggu Checker',n:48,err:0,warn:3,letters:['ND-881/UKA/2026','ND-884/UKA/2026']},
  {id:'SUB-2611-013',type:'Data baru',title:'Update DTTOT PPATK',unit:'AML Group',maker:'Rina A.',created:daysAgo(2),stage:3,status:'AML Review',n:126,err:0,warn:7,letters:['B-2210/PPATK/2026']},
  {id:'SUB-2611-012',type:'Data baru',title:'Negative List Kredit Macet',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(3),stage:2,status:'Menunggu Signer',n:22,err:0,warn:0,letters:['ND-512/UKB/2026']},
- {id:'SUB-2611-011',type:'Delisting',title:'Delisting Rejection List',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(4),stage:0,status:'Dikembalikan',n:6,err:2,warn:1,letters:['ND-301/UKC/2026'],note:'Referensi delisting belum dilampirkan untuk 2 record.'},
+ {id:'SUB-2611-011',type:'Delisting',title:'Delisting Scammer (6 record)',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(4),stage:0,status:'Dikembalikan',n:6,err:2,warn:1,letters:['ND-301/UKC/2026'],note:'Referensi delisting belum dilampirkan untuk 2 record.'},
  {id:'SUB-2611-010',type:'Data baru',title:'Scammer Phishing Q4',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(6),stage:4,status:'Approved',n:73,err:0,warn:0,letters:['ND-842/UKA/2026']},
  {id:'SUB-2611-009',type:'Data baru',title:'Draft Fraud Internal',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(7),stage:0,status:'Draft',n:15,err:4,warn:2,letters:['ND-498/UKB/2026']},
 {id:'SUB-2611-008',type:'Ubah data',title:'Update alamat DTTOT',unit:'AML Group',maker:'Rina A.',created:daysAgo(8),stage:0,status:'Draft',n:3,err:0,warn:1,letters:['B-2190/PPATK/2026']},
@@ -274,15 +317,15 @@ let SUBS=[
 const newId=()=>'SUB-2611-'+String(15+SUBS.length).padStart(3,'0');
 const STAGES=['Maker','Checker','Signer','AML Review','Ready'];
 let AUDIT=[];
-ENT.forEach(e=>e.hist.forEach(h=>AUDIT.push({t:h.t,user:h.u,act:h.a,obj:e.id+' · '+e.cat,r:h.r})));
+ENT.forEach(e=>e.hist.forEach(h=>AUDIT.push({t:h.t,user:h.u,act:h.a,obj:e.id+' · '+e.sub,r:h.r})));
 SUBS.forEach(s=>AUDIT.push({t:s.created,user:'Maker · '+s.maker,act:'Submission created',obj:s.id,r:s.title}));
 AUDIT.sort((a,b)=>b.t-a.t);
 const log=(act,obj,r)=>AUDIT.unshift({t:new Date(),user:ROLE.name,act,obj,r});
 
 /* ---------- roles ---------- */
-const ROLES={aml:{name:'AML Administrator',short:'AML Admin',ini:'AA',scope:CATS,lbl:'AML WORKSPACE · akses penuh'},
- maker:{name:'Siti Maharani',short:'Maker · Unit Kerja A',ini:'SM',scope:['Scammer','Negative List'],lbl:'Scope: Scammer, Negative List'},
- checker:{name:'Bagus Pranoto',short:'Checker/Signer · Unit Kerja A',ini:'BP',scope:['Scammer','Negative List'],lbl:'Scope: Scammer, Negative List'}};
+const ROLES={aml:{name:'AML Administrator',short:'AML Admin',ini:'AA',scope:Object.values(SUBC).flat(),lbl:'AML WORKSPACE · akses penuh'},
+ maker:{name:'Siti Maharani',short:'Maker · Unit Kerja A',ini:'SM',scope:['Scammer','Judol','Blokir','Delisting Rejection List'],lbl:'Scope: Scammer, Judol, Blokir'},
+ checker:{name:'Bagus Pranoto',short:'Checker/Signer · Unit Kerja A',ini:'BP',scope:['Scammer','Judol','Blokir','Delisting Rejection List'],lbl:'Scope: Scammer, Judol, Blokir'}};
 let roleKey='aml',ROLE=ROLES.aml;
 
 /* ---------- nav & sidebar ---------- */
@@ -331,26 +374,27 @@ function showCsv(title,csv){openModal(`<h2>${esc(title)}</h2><p class="sub" styl
 const TITLES={dash:'Dashboard',wdm:'Watchlist Data Management',input:'Submit Data',mysub:'My Submission',appr:'Approval',upload:'Upload Watchlist',audit:'Audit Trail',master:'Master Data & Administration'};
 function go(p){page=p;closeDrawer();if(innerWidth<760){sideMode='hid';applySide()}try{history.replaceState(null,'','#'+p)}catch(e){}render();$('#view').scrollTop=0}
 function render(){if(!navOK(page))page='dash';renderNav();$('#crumbB').textContent=TITLES[page];({dash:vDash,wdm:vWdm,input:vInput,mysub:()=>vSubs('mysub'),appr:()=>vSubs('appr'),upload:vUpload,audit:vAudit,master:vMaster})[page]()}
-const inScope=e=>ROLE.scope.includes(e.cat);
+const inScope=e=>ROLE.scope.includes(e.sub)||(e.cat==='Delisting Akhir'&&ROLE.scope.includes(e.prevSub));
 
 /* ================= DASHBOARD ================= */
-const TOT={DTTOT:31240,DPPSPM:12870,Scammer:29247,'Negative List':67611};
+const TOT={'DTTOT & DPPSPM':44110,'Scammer':21350,'Judol':7897,'Negative News':4210,'Blokir':38402,'Delisting Rejection List':9850,'SIPENDAR':6120,'Bank Koresponden':2340,'Informasi Lainnya':6689,'Delisting Akhir':1284};
 let period='12';
 function vDash(){
- const scopeTot=ROLE.scope.reduce((a,c)=>a+TOT[c],0),pend=SUBS.filter(s=>!['Approved','Draft','Dikembalikan'].includes(s.status)).length;
+ const scopeTot=ROLE.scope.filter(c=>c!=='Delisting Akhir').reduce((a,c)=>a+TOT[c],0),pend=SUBS.filter(s=>!['Approved','Draft','Dikembalikan'].includes(s.status)).length;
  const act=Math.round(scopeTot*.886),del=Math.round(scopeTot*.0493),ina=scopeTot-act-del;
  $('#view').innerHTML=`<h1>Ringkasan Watchlist</h1><p class="sub">Per ${dstr(today)} · ${roleKey==='aml'?'seluruh kategori':'sesuai scope unit Anda'} · data contoh prototipe</p>
  <div class="g kpis">
-  ${[['Total data Watchlist',fmt(scopeTot),'Record, bukan individu unik','b-b','wdm',{}],['Active',fmt(act),(act/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','ok','wdm',{status:'Active'}],['Inactive',fmt(ina),'Tidak diekspor ke patching','mute','wdm',{status:'Inactive'}],['Delisted',fmt(del),'+38 bulan ini','err','wdm',{status:'Delisted'}],['Pending approval',pend,'Menunggu tindakan','warn','appr',{}],['Validation errors',SUBS.reduce((a,s)=>a+s.err,0),'Di draft & submission','err','appr',{}]].map(([l,v,s,c,p,f],i)=>`<div class="card kpi" data-i="${i}" tabindex="0"><small>${l}</small><b>${v}</b><em style="color:var(--${c==='b-b'?'blue2':c})">${s}</em></div>`).join('')}
+  ${[['Total data Watchlist',fmt(scopeTot),'Record, bukan individu unik','b-b','wdm',{}],['Active',fmt(act),(act/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','ok','wdm',{status:'Active'}],['Inactive',fmt(ina),'Tidak diekspor ke patching','mute','wdm',{status:'Inactive'}],['Delisted',fmt(del),'Termasuk Delisting Akhir','err','wdm',{status:'Delisted'}],['Pending approval',pend,'Menunggu tindakan','warn','appr',{}],['Validation errors',SUBS.reduce((a,s)=>a+s.err,0),'Di draft & submission','err','appr',{}]].map(([l,v,s,c,p,f],i)=>`<div class="card kpi" data-i="${i}" tabindex="0"><small>${l}</small><b>${v}</b><em style="color:var(--${c==='b-b'?'blue2':c})">${s}</em></div>`).join('')}
  </div>
  <div class="g row2" style="margin-top:16px">
   <div class="card"><div class="ch"><div><h2>Tren penambahan dan penghapusan</h2><p>Jumlah record per bulan</p></div><div class="sp"></div>
    <div class="tabs" id="per"><button data-p="6" class="${period==='6'?'on':''}">6 bln</button><button data-p="12" class="${period==='12'?'on':''}">12 bln</button></div></div>
    <div class="leg"><span><i style="background:var(--blue)"></i>Penambahan</span><span><i style="background:var(--mentari)"></i>Penghapusan / delisting</span></div>
    <div class="fig" id="trend"><svg></svg></div></div>
-  <div class="card"><div class="ch"><div><h2>Distribusi kategori</h2><p>Klik untuk membuka data kategori</p></div></div>
-   ${ROLE.scope.map(c=>`<div class="bar" data-c="${c}" tabindex="0"><div class="bl"><span>${c} <small style="color:var(--mute)">· key ${KEY[c]}</small></span><b>${fmt(TOT[c])}</b></div><div class="bt"><i style="width:${TOT[c]/67611*100}%"></i></div></div>`).join('')}
-   <p class="note">Rejection List (DTTOT, DPPSPM, Scammer) ${fmt(73357)} · Negative List ${fmt(67611)}</p></div>
+  <div class="card"><div class="ch"><div><h2>Distribusi kategori</h2><p>Kategori dan subkategori · klik untuk membuka datanya</p></div></div>
+   ${ALLCATS.map(c=>{const subs=SUBC[c].filter(x=>ROLE.scope.includes(x));if(!subs.length)return '';const t=subs.reduce((a,x)=>a+TOT[x],0);
+    return `<div class="bar" data-k="${c}" tabindex="0" style="padding-top:10px"><div class="bl"><span><b>${c}</b> <small style="color:var(--mute)">· key ID Watchlist</small></span><b>${fmt(t)}</b></div></div>`+(c==='Delisting Akhir'?'':subs.map(x=>`<div class="bar" data-c="${x}" tabindex="0" style="padding-left:12px"><div class="bl"><span style="color:var(--mute)">${x}</span><b style="font-weight:500">${fmt(TOT[x])}</b></div><div class="bt"><i style="width:${TOT[x]/44110*100}%;${c==='Negative List'?'background:var(--mentari)':''}"></i></div></div>`).join(''))}).join('')}
+   <p class="note">Delisting Akhir berada di luar Rejection List dan Negative List, tidak ikut patching.</p></div>
  </div>
  <div class="g row2" style="margin-top:16px">
   <div class="card"><div class="ch"><h2>Aktivitas terbaru</h2><div class="sp"></div><button class="link" id="toAudit">Lihat audit trail →</button></div>
@@ -365,7 +409,7 @@ function vDash(){
  </div>`;
  const KF=[{},{status:'Active'},{status:'Inactive'},{status:'Delisted'}];
  document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{const i=+k.dataset.i;if(i>=4)return go(navOK('appr')?'appr':'mysub');resetF();if(KF[i].status)F.status=new Set([KF[i].status]);go('wdm')});
- document.querySelectorAll('.bar[data-c]').forEach(b=>b.onclick=()=>{resetF();F.cat=new Set([b.dataset.c]);go('wdm')});
+ document.querySelectorAll('.bar[data-c]').forEach(b=>b.onclick=()=>{resetF();F.sub=new Set([b.dataset.c]);go('wdm')});document.querySelectorAll('.bar[data-k]').forEach(b=>b.onclick=()=>{resetF();F.cat=new Set([b.dataset.k]);go('wdm')});
  $('#toAudit').onclick=()=>go('audit');
  $('#per').onclick=e=>{const b=e.target.closest('button');if(b){period=b.dataset.p;vDash()}};
  drawTrend();
@@ -389,7 +433,7 @@ function drawTrend(){
 let F,wv='item',q='',asof='',sort={k:'id',d:1},pg=1,per=10,hlId=null;
 function resetF(){F={cat:new Set(),sub:new Set(),src:new Set(),status:new Set(),unit:new Set()};q='';asof='';pg=1;hlId=null}
 resetF();
-const FDEF=[['cat','Kategori',()=>ROLE.scope],['sub','Subkategori',()=>[...new Set(ROLE.scope.flatMap(c=>SUBC[c]))]],['src','Sumber Data',()=>SOURCES],['status','Status',()=>['Active','Inactive','Delisted']],['unit','PIC Group',()=>UNITS]];
+const FDEF=[['cat','Kategori',()=>ALLCATS.filter(c=>SUBC[c].some(x=>ROLE.scope.includes(x)))],['sub','Subkategori',()=>ROLE.scope.filter(x=>x!=='Delisting Akhir')],['src','Sumber Data',()=>[...new Set(ENT.filter(inScope).flatMap(e=>e.vars.map(v=>v.src)))].sort()],['status','Status',()=>['Active','Inactive','Delisted']],['unit','PIC Group',()=>UNITS]];
 function filtered(){
  const qq=q.toLowerCase();
  return ENT.filter(e=>inScope(e)&&(!F.cat.size||F.cat.has(e.cat))&&(!F.sub.size||F.sub.has(e.sub))&&(!F.status.size||F.status.has(e.status))&&(!F.unit.size||F.unit.has(e.unit))
@@ -406,9 +450,9 @@ function bindChips(rerender){
   if(e.target.closest('.menu'))return;e.stopPropagation();const k=ch.dataset.f,opts=FDEF.find(d=>d[0]===k)[2]();
   let m=ch.querySelector('.menu');if(m){m.remove();return}closeMenus();document.querySelectorAll('.chip .menu').forEach(x=>x.remove());
   m=document.createElement('div');m.className='menu';const tmp=new Set(F[k]);
-  m.innerHTML=opts.map(o=>`<label><input type="checkbox" value="${esc(o)}" ${tmp.has(o)?'checked':''}> ${esc(o)}</label>`).join('')+`<div class="mf"><button class="link" data-c>Hapus</button><button class="btn pri sm" data-a>Terapkan</button></div>`;
-  ch.append(m);
-  m.onchange=ev=>{ev.target.checked?tmp.add(ev.target.value):tmp.delete(ev.target.value)};
+  m.innerHTML=(opts.length>8?`<input class="date" style="width:100%;border-radius:8px;margin-bottom:4px" placeholder="Cari…" data-q>`:'')+opts.map(o=>`<label><input type="checkbox" value="${esc(o)}" ${tmp.has(o)?'checked':''}> ${esc(o)}</label>`).join('')+`<div class="mf"><button class="link" data-c>Hapus</button><button class="btn pri sm" data-a>Terapkan</button></div>`;
+  ch.append(m);const mq=m.querySelector('[data-q]');if(mq){mq.focus();mq.oninput=()=>m.querySelectorAll('label').forEach(l=>l.hidden=!l.textContent.toLowerCase().includes(mq.value.toLowerCase()))}
+  m.onchange=ev=>{if(ev.target.type!=='checkbox')return;ev.target.checked?tmp.add(ev.target.value):tmp.delete(ev.target.value)};
   m.querySelector('[data-c]').onclick=()=>{F[k].clear();pg=1;rerender()};
   m.querySelector('[data-a]').onclick=()=>{F[k]=tmp;pg=1;rerender()};
  });
@@ -436,7 +480,7 @@ function wdmTable(){
   rows.sort((a,b)=>(a[sort.k]>b[sort.k]?1:a[sort.k]<b[sort.k]?-1:0)*sort.d);
   const pages=Math.max(1,Math.ceil(rows.length/per));if(pg>pages)pg=pages;const sl=rows.slice((pg-1)*per,pg*per);
   $('#tbl').innerHTML=rows.length?`<div class="tw"><table class="x"><thead><tr>${cols.map(([k,l])=>`<th data-s="${k}">${l}<span class="ar">${sort.k===k?(sort.d>0?'▲':'▼'):'↕'}</span></th>`).join('')}<th>ACTION</th></tr></thead><tbody>
-   ${sl.map(e=>`<tr data-id="${e.id}" style="cursor:pointer"><td><b style="color:var(--blue2)">${e.id}</b></td><td>${esc(e.name)}</td><td><small style="color:var(--mute)">${KEY[e.cat]==='NIK'?'NIK':'KD'} ·</small> ${esc(e.key)}</td><td>${e.cat}</td><td>${esc(e.sub)}</td><td>${e.nv>1?`<span class="badge b-w">${e.nv} variasi</span>`:'<span style="color:var(--mute)">—</span>'}</td><td>${stBadge(e.status)}</td><td>${dstr(e.updated)}</td><td><button class="link" data-id="${e.id}">View Detail</button></td></tr>`).join('')}
+   ${sl.map(e=>`<tr data-id="${e.id}" style="cursor:pointer"><td><b style="color:var(--blue2)">${e.id}</b></td><td>${esc(e.name)}</td><td><small style="color:var(--mute)">${KEY[e.sub]==='NIK'?'NIK':'KD'} ·</small> ${esc(e.key)}</td><td>${catBadge(e.cat)}</td><td>${esc(e.sub)}</td><td>${e.nv>1?`<span class="badge b-w">${e.nv} variasi</span>`:'<span style="color:var(--mute)">—</span>'}</td><td>${stBadge(e.status)}</td><td>${dstr(e.updated)}</td><td><button class="link" data-id="${e.id}">View Detail</button></td></tr>`).join('')}
    </tbody></table></div>`+pager(rows.length,'entitas'):emptyState();
   document.querySelectorAll('#tbl th[data-s]').forEach(th=>th.onclick=()=>{const k=th.dataset.s;sort=sort.k===k?{k,d:-sort.d}:{k,d:1};wdmTable()});
   document.querySelectorAll('#tbl tr[data-id]').forEach(tr=>tr.onclick=()=>entityDrawer(tr.dataset.id));
@@ -445,7 +489,7 @@ function wdmTable(){
   const flat=rows.flatMap(e=>e.vars.map((v,j)=>({e,v,j})));
   const pages=Math.max(1,Math.ceil(flat.length/per));if(pg>pages)pg=pages;const sl=flat.slice((pg-1)*per,pg*per);
   $('#tbl').innerHTML=flat.length?`<div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
-  ${sl.map(({e,v,j},i)=>{const kd=KEY[e.cat]==='Kode Dugaan';return `<tr class="${hlId===e.id?'hl':''}"><td class="rn">${(pg-1)*per+i+1}</td><td><b style="color:var(--blue2)">${e.id}</b>${e.vars.length>1?` <small style="color:var(--mute)">v${j+1}</small>`:''}</td><td>${e.cat}</td><td>${esc(e.sub)}</td><td>${esc(e.key)}</td><td>${esc(v.nama)}</td>${nul(v.alias)}${nul(e.nik)}${nul(kd?e.key:null)}${nul(e.cif)}${nul(e.rek)}${nul(v.tempat)}<td>${dstr(v.tgl)}</td>${nul(v.alamat)}${nul(e.kwn)}<td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${dstr(v.tglLapor)}</td><td>${esc(e.unit)}</td><td>${stBadge(e.status)}</td>${nul(e.status==='Delisted'?'Surat pencabutan dari sumber':null)}</tr>`}).join('')}
+  ${sl.map(({e,v,j},i)=>{const kd=KEY[e.sub]==='Kode Dugaan'||KEY[e.prevSub]==='Kode Dugaan';return `<tr class="${hlId===e.id?'hl':''}"><td class="rn">${(pg-1)*per+i+1}</td><td><b style="color:var(--blue2)">${e.id}</b>${e.vars.length>1?` <small style="color:var(--mute)">v${j+1}</small>`:''}</td><td>${e.cat}</td><td>${esc(e.sub)}</td><td>${esc(e.key)}</td><td>${esc(v.nama)}</td>${nul(v.alias)}${nul(e.nik)}${nul(kd?e.key:null)}${nul(e.cif)}${nul(e.rek)}${nul(v.tempat)}<td>${dstr(v.tgl)}</td>${nul(v.alamat)}${nul(e.kwn)}<td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${dstr(v.tglLapor)}</td><td>${esc(e.unit)}</td><td>${stBadge(v.del?'Delisted':e.status)}</td>${nul(v.del?'Didelisting ke '+(ENT.find(x=>x.origin===e.id&&x.vars.some(y=>y.origVid===v.vid))?.id||'Negative List'):e.cat==='Delisting Akhir'?'Delisting Akhir':v.orig?'Delisting dari '+e.origin:null)}</tr>`}).join('')}
   </tbody></table></div>`+pager(flat.length,'baris'):emptyState();
  }
  bindPager(wdmTable);
@@ -456,27 +500,30 @@ function pager(total,unit){const pages=Math.max(1,Math.ceil(total/per));let b=[]
  <button data-g="${pg-1}" ${pg===1?'disabled':''}>‹</button>${b.map(x=>x==='…'?'<span>…</span>':`<button data-g="${x}" class="${x===pg?'on':''}">${x}</button>`).join('')}<button data-g="${pg+1}" ${pg===pages?'disabled':''}>›</button></div></div>`}
 function bindPager(fn){document.querySelectorAll('.pg [data-g]').forEach(b=>b.onclick=()=>{pg=+b.dataset.g;fn()});const s=$('#per');if(s)s.onchange=e=>{per=+e.target.value;pg=1;fn()};const r=$('#rst2');if(r)r.onclick=()=>{resetF();fn()}}
 
+const canDelist=e=>e.cat!=='Delisting Akhir'&&e.status!=='Delisted'&&!e.restored&&live(e).length>0;
+const canRestore=e=>!!e.origin&&!e.restored&&e.status==='Active'&&roleKey==='aml';
 function openSub(e){return SUBS.find(s=>s.apply&&s.apply.id===e.id&&!['Approved'].includes(s.status))}
 function entityDrawer(id){
  const e=ENT.find(x=>x.id===id);const aml=roleKey==='aml',os=openSub(e);
  const attrs=['nama','alamat'].map(a=>{const vals=[...new Map(e.vars.map(v=>[v[a],v])).values()];return {a,vals}});
  openDrawer(`<div class="dh"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><small style="color:var(--mute);font-size:11px">ENTITY DETAIL</small><h2 style="font-size:18px;margin:2px 0 6px">${esc(e.name)}</h2>
-  <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-b">${e.id} · ${e.cat}</span>${stBadge(e.status)}${os?'<span class="badge b-w">Perubahan diajukan</span>':''}</div></div><button class="ib" id="dx" aria-label="Tutup">${ic('x')}</button></div></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-b">${e.id}</span>${catBadge(e.cat)}${stBadge(e.status)}${os?'<span class="badge b-w">Perubahan diajukan</span>':''}</div></div><button class="ib" id="dx" aria-label="Tutup">${ic('x')}</button></div></div>
  <div class="db">
   ${os?`<div class="alert w" style="margin-top:14px">${ic('hist')}<span><b>${os.type} sedang diproses: ${os.id}</b>Status ${esc(os.status)}. Data di bawah belum berubah sampai pengajuan disetujui.</span></div>`:''}
-  <div class="sec"><h3>${ic('user')}Entity Information</h3><dl class="kv"><dt>ID Watchlist</dt><dd>${e.id}</dd><dt>Kategori</dt><dd>${e.cat}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}</dd><dt>Primary key (${KEY[e.cat]})</dt><dd>${esc(e.key)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>PIC Group</dt><dd>${esc(e.unit)}</dd><dt>Dibuat</dt><dd>${dstr(e.created)}</dd><dt>Terakhir diubah</dt><dd>${dstr(e.updated)}</dd></dl></div>
+  <div class="sec"><h3>${ic('user')}Entity Information</h3><dl class="kv"><dt>ID Watchlist</dt><dd>${e.id}</dd><dt>Kategori</dt><dd>${e.cat}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}${e.prevSub?' <small style="color:var(--mute)">(sebelumnya '+esc(e.prevSub)+')</small>':''}</dd>${e.origin?`<dt>Asal Rejection List</dt><dd><button class="link" style="padding:0" data-go-ent="${e.origin}">${e.origin}</button>${e.restored?' · sudah dikembalikan':''}</dd>`:''}<dt>Primary key (${KEY[e.prevSub||e.sub]})</dt><dd>${esc(e.key)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>PIC Group</dt><dd>${esc(e.unit)}</dd><dt>Dibuat</dt><dd>${dstr(e.created)}</dd><dt>Terakhir diubah</dt><dd>${dstr(e.updated)}</dd></dl></div>
   <div class="sec"><h3>${ic('db')}Attributes &amp; Variations</h3>${e.vars.length>1?`<div class="alert w">${ic('warn')}<span><b>Ada ${e.vars.length} variasi atribut</b>Key sama dalam kategori yang sama. Variasi dipertahankan beserta sumbernya.</span></div>`:''}
-   ${attrs.map(({a,vals})=>`<div class="var"><div class="vh"><b style="color:var(--ink)">${a==='nama'?'Nama':'Alamat'}</b><span>${vals.length} variasi</span></div><ul>${vals.map(v=>`<li><span>${esc(v[a])}</span><small>${esc(v.src)}</small></li>`).join('')}</ul></div>`).join('')}
+   ${e.vars.some(v=>v.del)?`<div class="alert i">${ic('db')}<span><b>${e.vars.filter(v=>v.del).length} variasi sudah didelisting</b>Variasi tersebut sudah tercatat di Negative List.</span></div>`:''}${attrs.map(({a,vals})=>`<div class="var"><div class="vh"><b style="color:var(--ink)">${a==='nama'?'Nama':'Alamat'}</b><span>${vals.length} variasi</span></div><ul>${vals.map(v=>`<li><span style="${v.del?'text-decoration:line-through;color:var(--mute)':''}">${esc(v[a])}</span><small>${esc(v.src)}${v.del?' · delisted':''}</small></li>`).join('')}</ul></div>`).join('')}
    <div class="var"><div class="vh"><b style="color:var(--ink)">Tempat / Tanggal lahir</b><span>1 nilai</span></div><ul><li><span>${esc(e.vars[0].tempat)}, ${dstr(e.vars[0].tgl)}</span><small>${esc(e.vars[0].src)}</small></li></ul></div></div>
   <div class="sec"><h3>${ic('file')}Source &amp; Provenance</h3>${e.vars.map((v,i)=>`<dl class="kv" style="margin-bottom:10px"><dt>Sumber ${i+1}</dt><dd>${esc(v.src)}</dd><dt>No. surat / referensi</dt><dd>${esc(v.ref)}</dd><dt>Tanggal dilaporkan</dt><dd>${dstr(v.tglLapor)}</dd></dl>`).join('')}</div>
   <div class="sec"><h3>${ic('hist')}Activity History</h3><div class="tl">${[...e.hist].reverse().map(h=>`<div><b style="font-weight:500">${esc(h.a)}</b><small>${dstr(h.t)} · ${esc(h.u)}</small><small>${esc(h.r)}</small></div>`).join('')}</div></div>
  </div>
  <div class="df"><button class="btn pri" id="ofd">${ic('link')}Open Full Detail View</button>
-  ${roleKey==='checker'||os?'':e.status==='Delisted'?(aml?`<button class="btn" data-sub="react">Ajukan reactivation</button>`:''):`<button class="btn" data-sub="update">Ajukan perubahan</button><button class="btn dan" data-sub="delist">Ajukan delisting</button>`}
+  ${roleKey==='checker'||os?'':[e.cat!=='Delisting Akhir'&&e.status!=='Delisted'&&!e.restored?`<button class="btn" data-sub="update">Ajukan perubahan</button>`:'',canDelist(e)?`<button class="btn dan" data-sub="delist">Ajukan delisting</button>`:'',canRestore(e)?`<button class="btn" data-sub="react">↩ Kembalikan ke Rejection List</button>`:''].join('')}
   <p class="note" style="width:100%;margin:2px 0 0">Data tidak bisa diubah langsung. Semua perubahan diajukan lewat menu Submit Data dan melalui approval.</p></div>`);
  $('#dx').onclick=closeDrawer;
  $('#ofd').onclick=()=>{wv='detail';resetF();q=e.id;hlId=e.id;go('wdm')};
  document.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{subType=b.dataset.sub;pre=e.id;go('input')});
+ document.querySelectorAll('[data-go-ent]').forEach(b=>b.onclick=()=>entityDrawer(b.dataset.goEnt));
 }
 function exportModal(){
  const rows=filtered();
@@ -491,7 +538,7 @@ function exportModal(){
 let inTab='bulk',BULK=null,scCat='Scammer';
 const FIELDS={nama:'Nama',alias:'Alias Nama',nik:'NIK',kode:'Kode Dugaan',cif:'CIF',rek:'No. Rekening',tempat_lahir:'Tempat Lahir',tgl_lahir:'Tanggal Lahir',alamat:'Alamat',kwn:'Kewarganegaraan',sumber:'Sumber Data',no_surat:'No. Surat / Referensi',tgl_lapor:'Tanggal Dilaporkan'};
 let subType='new',pre=null;
-const STYPE={new:'Data baru',update:'Ubah data',delist:'Delisting',react:'Reactivation',master:'Master data'};
+const STYPE={new:'Data baru',update:'Ubah data',delist:'Delisting',react:'Kembalikan ke Rejection',master:'Master data'};
 function vInput(){
  if(roleKey==='checker'){$('#view').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Role Checker/Signer tidak dapat mengajukan data.</b><br>Ganti role ke Maker atau AML Admin dari menu profil.</p></div>`;return}
  const types=Object.keys(STYPE).filter(k=>roleKey==='aml'||!['react','master'].includes(k));if(!types.includes(subType))subType='new';
@@ -507,31 +554,39 @@ function changeForm(kind){
  const aml=roleKey==='aml';
  if(kind==='master'){
   $('#ib').innerHTML=`<div class="card" style="max-width:720px"><form id="cf" novalidate><div class="fgrid"><div class="fld"><label>Jenis master data <i>*</i></label><select name="mt"><option value="src">Source</option><option value="sub">Subcategory</option></select></div>
-  <div class="fld"><label>Kategori induk</label><select name="c">${CATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
+  <div class="fld"><label>Induk</label><select name="c">${CATS.map(c=>`<optgroup label="Subkategori di ${c}">${SUBC[c].map(x=>`<option value="${x}">${x}</option>`).join('')}</optgroup>`).join('')}<optgroup label="Kategori (untuk Subcategory baru)">${CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</optgroup></select></div></div>
   <div class="fld"><label>Nama <i>*</i></label><input name="n" placeholder="mis. Bareskrim Polri"></div><div class="fld"><label>Alasan / referensi <i>*</i></label><input name="ref"></div>
   <div class="mact"><button type="button" class="btn" id="cdr">Simpan draft</button><button class="btn pri">Submit</button></div></form></div>`;
   return bindChange(kind,null)}
- const ok=e=>inScope(e)&&(kind==='update'?e.status!=='Delisted':kind==='delist'?e.status!=='Delisted':e.status==='Delisted');
+ const ok=e=>inScope(e)&&(kind==='update'?e.cat!=='Delisting Akhir'&&e.status!=='Delisted'&&!e.restored:kind==='delist'?canDelist(e):canRestore(e));
  const opts=ENT.filter(ok);
  $('#ib').innerHTML=`<div class="split"><div class="card"><form id="cf" novalidate>
-  <div class="fld"><label>Entitas (ID Watchlist) <i>*</i></label><input name="id" list="entl" placeholder="Ketik ID atau nama…" value="${esc(pre||'')}" autocomplete="off"><datalist id="entl">${opts.map(e=>`<option value="${e.id}">${esc(e.name)} · ${e.cat}</option>`).join('')}</datalist></div>
-  ${kind==='update'?`<div class="fgrid"><div class="fld"><label>Subkategori baru</label><select name="sub"><option value="">Tidak berubah</option>${[...new Set(ROLE.scope.flatMap(c=>SUBC[c]))].map(x=>`<option>${esc(x)}</option>`).join('')}</select></div>
+  <div class="fld"><label>Entitas (ID Watchlist) <i>*</i></label><input name="id" list="entl" placeholder="Ketik ID atau nama…" value="${esc(pre||'')}" autocomplete="off"><datalist id="entl">${opts.map(e=>`<option value="${e.id}">${esc(e.name)} · ${e.cat} · ${esc(e.sub)}</option>`).join('')}</datalist></div>
+  ${kind==='update'?`<div class="fgrid"><div class="fld"><label>Subkategori baru</label><select name="sub"><option value="">Tidak berubah</option>${ROLE.scope.filter(x=>!['Delisting Akhir','Delisting Rejection List'].includes(x)).map(x=>`<option>${esc(x)}</option>`).join('')}</select></div>
    <div class="fld"><label>CIF baru</label><input name="cif" placeholder="Kosongkan jika tidak berubah"></div></div>
    <div class="fld"><label>Tambah variasi alamat</label><input name="alamat" placeholder="Opsional: alamat dari sumber baru"></div>
    <div class="fld"><label>Alasan perubahan <i>*</i></label><input name="r"></div>`
-  :`<div class="fld"><label>Alasan ${kind==='delist'?'delisting':'reactivation'} <i>*</i></label><select name="r"><option value="">Pilih alasan</option>${(kind==='delist'?['Surat pencabutan dari sumber','Salah identitas','Putusan pengadilan','Lainnya']:['Pengajuan ulang dari sumber','Koreksi delisting','Lainnya']).map(x=>`<option>${x}</option>`).join('')}</select></div>`}
+  :`${kind==='delist'?'<div class="fld"><label>Variasi &amp; sumber yang didelisting <i>*</i></label><div id="vsel" class="var" style="margin:0"><small style="color:var(--mute)">Pilih entitas dulu</small></div><input type="hidden" name="vids"></div><div id="flowinfo"></div>':''}<div class="fld"><label>Alasan ${kind==='delist'?'delisting':'pengembalian'} <i>*</i></label><select name="r"><option value="">Pilih alasan</option>${(kind==='delist'?['Surat pencabutan dari sumber','Salah identitas','Putusan pengadilan','Lainnya']:['Pengajuan ulang dari sumber','Koreksi delisting','Lainnya']).map(x=>`<option>${x}</option>`).join('')}</select></div>`}
   <div class="fld"><label>No. surat / referensi <i>*</i></label><input name="ref" placeholder="mis. ND-901/UKA/2026"></div>
   <div class="fld"><label>Catatan</label><textarea name="n"></textarea></div>
-  ${kind==='delist'?`<div class="alert i">${ic('db')}<span>Record Rejection List yang di-delist tetap ada dengan status Delisted dan dicatat juga di Negative List.</span></div>`:''}
-  ${kind==='react'?`<div class="alert i">${ic('lock')}<span>Hanya AML yang dapat melakukan reactivation dari Negative ke Rejection.</span></div>`:''}
+  ${kind==='delist'?'':'<div id="flowinfo"></div>'}
+  ${kind==='react'?`<div class="alert i">${ic('lock')}<span>Hanya AML. Record di Negative List (subkategori Delisting Rejection List) dinonaktifkan, dan variasinya aktif kembali di record Rejection List asal.</span></div>`:''}
   <div class="mact"><button type="button" class="btn" id="cdr">Simpan draft</button><button class="btn pri">Submit</button></div></form></div>
   <div class="card" id="ep"></div></div>`;
  const f=$('#cf'),prev=()=>{const e=ENT.find(x=>x.id===f.id.value.trim().toUpperCase());
-  $('#ep').innerHTML=e?`<small style="color:var(--mute);font-size:11px">DATA SAAT INI</small><h2 style="margin:2px 0 8px">${esc(e.name)}</h2><div style="display:flex;gap:6px;margin-bottom:12px"><span class="badge b-b">${e.id} · ${e.cat}</span>${stBadge(e.status)}</div>
-   <dl class="kv"><dt>Primary key</dt><dd>${esc(e.key)}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>Alamat</dt><dd>${esc(e.vars[0].alamat)}</dd><dt>Sumber</dt><dd>${esc(e.vars.map(v=>v.src).join(', '))}</dd></dl>
+  $('#ep').innerHTML=e?`<small style="color:var(--mute);font-size:11px">DATA SAAT INI</small><h2 style="margin:2px 0 8px">${esc(e.name)}</h2><div style="display:flex;gap:6px;margin-bottom:12px"><span class="badge b-b">${e.id}</span>${catBadge(e.cat)}${stBadge(e.status)}</div>
+   <dl class="kv"><dt>Primary key</dt><dd>${esc(e.key)}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>Alamat</dt><dd>${esc(e.vars[0].alamat)}</dd><dt>Sumber</dt><dd>${esc([...new Set(e.vars.map(v=>v.src))].join(', '))}</dd>${e.origin?`<dt>Asal</dt><dd>${e.origin} (Rejection List)</dd>`:''}</dl>
    ${!ok(e)?`<div class="alert e" style="margin-top:12px">${ic('warn')}<span><b>Tidak bisa diajukan</b>Status ${e.status} tidak sesuai untuk ${STYPE[kind].toLowerCase()}${inScope(e)?'':' atau di luar scope Anda'}.</span></div>`:openSub(e)?`<div class="alert w" style="margin-top:12px">${ic('hist')}<span><b>Sudah ada pengajuan berjalan</b>${openSub(e).id} · ${esc(openSub(e).status)}</span></div>`:''}`
    :`<div class="empty">${ic('search')}<p>Pilih entitas untuk melihat data saat ini.</p></div>`};
- f.id.oninput=prev;prev();bindChange(kind,ok);
+ const vsel=()=>{if(kind!=='delist')return;const e=ENT.find(x=>x.id===f.id.value.trim().toUpperCase());const box=$('#vsel');
+  if(!e||!ok(e)){box.innerHTML='<small style="color:var(--mute)">Pilih entitas dulu</small>';$('#flowinfo').innerHTML='';f.vids.value='';return}
+  box.innerHTML=`<label style="display:flex;gap:8px;padding:4px 0;font-weight:600"><input type="checkbox" data-all checked> Pilih semua variasi aktif</label><ul>${e.vars.map(v=>`<li><label style="display:flex;gap:10px;align-items:flex-start;width:100%;${v.del?'opacity:.5':''}"><input type="checkbox" value="${v.vid}" ${v.del?'disabled':'checked'} style="margin-top:3px"><span style="flex:1">${esc(v.nama)} · ${esc(v.alamat)}<br><small style="color:var(--mute)">Sumber: ${esc(v.src)} · ${esc(v.ref)}${v.del?' · sudah didelisting':''}</small></span></label></li>`).join('')}</ul>`;
+  const sync=()=>{const ch=[...box.querySelectorAll('input[value]:checked')].map(x=>+x.value);f.vids.value=ch.join(',');const n=ch.length,all=n===live(e).length;
+   box.querySelector('[data-all]').checked=all;
+   $('#flowinfo').innerHTML=!n?'':e.cat==='Rejection List'?`<div class="alert i">${ic('db')}<span><b>${n} variasi → Negative List (Delisting Rejection List)</b>Dibuat sebagai penambahan baru di Negative List dengan sumber ${[...new Set(e.vars.filter(v=>ch.includes(v.vid)).map(v=>'"DELISTING - '+esc(v.src)+'"'))].join(', ')}. ${all?'Record '+e.id+' berstatus Delisted.':'Variasi lain tetap aktif di Rejection List (partial).'}</span></div>`
+    :`<div class="alert w">${ic('warn')}<span><b>${n} variasi → Delisting Akhir</b>${all?'Record '+e.id+' keluar dari Negative List dan tidak ikut patching.':'Variasi terpilih dipisah jadi record baru di Delisting Akhir; sisanya tetap di Negative List.'}</span></div>`};
+  box.onchange=ev=>{if(ev.target.dataset.all!==undefined)box.querySelectorAll('input[value]:not(:disabled)').forEach(x=>x.checked=ev.target.checked);sync()};sync()};
+ f.id.oninput=()=>{prev();vsel()};prev();vsel();bindChange(kind,ok);
 }
 function bindChange(kind,ok){
  const f=$('#cf'),aml=roleKey==='aml';
@@ -539,22 +594,23 @@ function bindChange(kind,ok){
   const need=kind==='master'?['n','ref']:['id','r','ref'];let good=true;const bad=(n,m)=>{good=false;const w=f[n].closest('.fld');w.classList.add('bad');w.insertAdjacentHTML('beforeend',`<span class="em">${m}</span>`)};
   if(!draft)need.forEach(n=>{if(!f[n].value.trim())bad(n,'Wajib diisi')});
   let e=null;if(kind!=='master'){e=ENT.find(x=>x.id===f.id.value.trim().toUpperCase());if(f.id.value.trim()&&!e)bad('id','ID tidak ditemukan');else if(e&&!ok(e))bad('id','Status/scope tidak sesuai');else if(e&&openSub(e))bad('id','Sudah ada pengajuan berjalan: '+openSub(e).id);if(draft&&!e)bad('id','Pilih entitas dulu')}
+  if(kind==='delist'&&e&&!draft&&!f.vids.value)bad('vids','Pilih minimal satu variasi');
   if(kind==='update'&&e&&!draft&&!f.sub.value&&!f.cif.value.trim()&&!f.alamat.value.trim())bad('sub','Isi minimal satu perubahan');
   if(!good)return toast('Masih ada field yang perlu diperbaiki');
-  const data=kind==='master'?{mt:f.mt.value,c:f.c.value,n:f.n.value.trim()}:kind==='update'?{sub:f.sub.value,cif:f.cif.value.trim(),alamat:f.alamat.value.trim(),r:f.r.value}:{r:f.r.value};
-  const s={id:newId(),type:STYPE[kind],title:STYPE[kind]+' · '+(e?e.id+' '+e.name:data.n),unit:aml?'AML Group':'Unit Kerja A',maker:ROLE.name,created:new Date(),
+  const data=kind==='master'?{mt:f.mt.value,c:f.c.value,n:f.n.value.trim()}:kind==='update'?{sub:f.sub.value,cif:f.cif.value.trim(),alamat:f.alamat.value.trim(),r:f.r.value}:kind==='delist'?{r:f.r.value,vids:f.vids.value.split(',').filter(Boolean).map(Number)}:{r:f.r.value};
+  const s={id:newId(),type:STYPE[kind],title:STYPE[kind]+' · '+(e?e.id+' '+e.name+(kind==='delist'?' ('+data.vids.length+'/'+live(e).length+' variasi)':''):data.n),unit:aml?'AML Group':'Unit Kerja A',maker:ROLE.name,created:new Date(),
    stage:draft?0:aml?3:1,status:draft?'Draft':aml?'AML Review':'Menunggu Checker',n:1,err:0,warn:0,letters:[f.ref.value||'—'],apply:{kind,id:e?.id,data}};
   SUBS.unshift(s);log(draft?'Draft saved':'Submitted',s.id,s.title);toast(draft?'Draft disimpan di My Submission':s.id+' diajukan → '+s.status);selSub=s.id;pre=null;msf='all';go('mysub')};
  f.onsubmit=ev=>{ev.preventDefault();make(false)};$('#cdr').onclick=()=>make(true);
 }
 function single(){
- const cats=ROLE.scope;if(!cats.includes(scCat))scCat=cats[0];
+ const subs=ROLE.scope.filter(x=>!['Delisting Akhir','Delisting Rejection List'].includes(x));if(!subs.includes(scCat))scCat=subs[0];
  const isKD=KEY[scCat]==='Kode Dugaan';const show=Object.keys(FIELDS).filter(k=>!(isKD&&k==='rek')&&!(!isKD&&k==='kode'));
- $('#ib').innerHTML=`<div class="card"><form id="sf" novalidate><div class="fgrid"><div class="fld"><label>Kategori <i>*</i></label><select id="scat">${cats.map(c=>`<option ${c===scCat?'selected':''}>${c}</option>`).join('')}</select></div>
- <div class="fld"><label>Subkategori <i>*</i></label><select name="sub">${SUBC[scCat].map(s=>`<option>${esc(s)}</option>`).join('')}</select></div></div>
- <div class="alert i">${ic('lock')}<span>Primary key untuk <b style="display:inline">${scCat}</b>: ${KEY[scCat]}. Field bertanda * wajib untuk kategori ini.</span></div>
+ $('#ib').innerHTML=`<div class="card"><form id="sf" novalidate><div class="fgrid"><div class="fld"><label>Subkategori <i>*</i></label><select id="scat">${CATS.map(c=>{const o=SUBC[c].filter(x=>subs.includes(x));return o.length?`<optgroup label="${c}">${o.map(x=>`<option ${x===scCat?'selected':''}>${x}</option>`).join('')}</optgroup>`:''}).join('')}</select></div>
+ <div class="fld"><label>Kategori</label><input value="${catOf(scCat)}" disabled></div></div>
+ <div class="alert i">${ic('lock')}<span>Primary key untuk <b style="display:inline">${scCat}</b>: ${KEY[scCat]}. Field bertanda * wajib untuk subkategori ini.</span></div>
  <div class="fgrid">${show.map(k=>{const req=MAND[scCat].includes(k);const t=k.startsWith('tgl')?'date':'text';
-  return `<div class="fld"><label>${FIELDS[k]} ${req?'<i>*</i>':''}</label>${k==='sumber'?`<select name="${k}"><option value="">Pilih sumber</option>${SOURCES.map(s=>`<option>${s}</option>`).join('')}</select>`:`<input name="${k}" type="${t}" ${k==='nik'?'inputmode="numeric" maxlength="16" placeholder="16 digit"':''}>`}</div>`}).join('')}</div>
+  return `<div class="fld"><label>${FIELDS[k]} ${req?'<i>*</i>':''}</label>${k==='sumber'?`<select name="${k}"><option value="">Pilih sumber</option>${SRC[scCat].map(s=>`<option>${esc(s)}</option>`).join('')}</select>`:`<input name="${k}" type="${t}" ${k==='nik'?'inputmode="numeric" maxlength="16" placeholder="16 digit"':''}>`}</div>`}).join('')}</div>
  <div class="mact"><button type="button" class="btn" id="lk">${ic('search')}Lookup Big Data</button><button type="button" class="btn" id="dr">Simpan draft</button><button class="btn pri">Validasi &amp; lanjut ke preview</button></div></form></div>`;
  $('#scat').onchange=e=>{scCat=e.target.value;single()};
  const f=$('#sf');
@@ -568,14 +624,16 @@ function single(){
   if(!ok){toast('Masih ada field yang perlu diperbaiki');return}
   const r={cat:scCat};Object.keys(FIELDS).forEach(k=>r[k]=f[k]?.value||'');BULK=BULK||{name:'Single entry',rows:[]};BULK.rows.push(r);inTab='bulk';vInput();toast('Record ditambahkan ke preview')};
 }
-function sampleRows(){const R=[];const ex=ENT.find(e=>e.cat==='Scammer');
- for(let i=0;i<12;i++){const c=i<8?'Scammer':'Negative List';R.push({cat:c,nama:pick(NAMES),nik:'3'+String(Math.floor(rnd()*1e15)).padStart(15,'0'),cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):'',rek:rnd()<.5?'0'+Math.floor(rnd()*1e14):'',tempat_lahir:pick(CITIES),tgl_lahir:'198'+i%10+'-0'+(1+i%9)+'-1'+i%9,alamat:'Jl. Kenanga No.'+(i+3),sumber:pick(['Unit Fraud BRI','Kepolisian','OJK']),no_surat:'ND-'+(900+i)+'/UKA/2026',tgl_lapor:'2026-11-1'+i%9,kode:'',alias:'',kwn:'Indonesia'})}
+function sampleRows(){const R=[];const ex=ENT.find(e=>e.sub==='Scammer');
+ for(let i=0;i<12;i++){const c=i<8?'Scammer':'Blokir';R.push({cat:c,nama:pick(NAMES),nik:'3'+String(Math.floor(rnd()*1e15)).padStart(15,'0'),cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):'',rek:rnd()<.5?'0'+Math.floor(rnd()*1e14):'',tempat_lahir:pick(CITIES),tgl_lahir:'198'+i%10+'-0'+(1+i%9)+'-1'+i%9,alamat:'Jl. Kenanga No.'+(i+3),sumber:pick(SRC[c].slice(0,4)),no_surat:'ND-'+(900+i)+'/UKA/2026',tgl_lapor:'2026-11-1'+i%9,kode:'',alias:'',kwn:'Indonesia'})}
  R[2].nik='3271'+'0012';R[5].no_surat='';R[7].nik=ex.key;R[7].nama=ex.name+' S.';R[9].sumber='';R[10].mm=true;return R}
 function validate(r){const issues={};
  MAND[r.cat].forEach(k=>{if(!String(r[k]||'').trim())issues[k]=['e','Wajib untuk '+r.cat]});
  if(r.nik&&!/^\d{16}$/.test(r.nik))issues.nik=['e','NIK harus 16 digit'];
- if(r.nik){const d=ENT.find(e=>e.cat===r.cat&&e.key===r.nik);if(d&&!issues.nik)issues.nik=['w','Key sudah ada di '+d.id+' → masuk sebagai variasi']}
+ if(r.nik){const d=ENT.find(e=>e.sub===r.cat&&e.key===r.nik);if(d&&!issues.nik)issues.nik=['w','Key sudah ada di '+d.id+' → masuk sebagai variasi']}
  if(r.mm&&!issues.tgl_lahir)issues.tgl_lahir=['w','Mismatch dengan Big Data (1988-04-12)'];
+ if(r.sumber&&SRC[r.cat]&&!SRC[r.cat].includes(r.sumber)&&!issues.sumber)issues.sumber=['e','Sumber tidak terdaftar untuk '+r.cat];
+ if(!SRC[r.cat])issues.cat=['e','Subkategori tidak dikenal'];
  r.st=Object.values(issues).some(x=>x[0]==='e')?'Error':Object.keys(issues).length?'Warning':'Valid';r.iss=issues;return r}
 function bulk(){
  if(!BULK){$('#ib').innerHTML=`<div class="card" style="max-width:820px"><div class="ch"><div><h2>Unggah file</h2><p>Format .xlsx atau .csv sesuai template standar BRI. Kolom wajib mengikuti kategori.</p></div><div class="sp"></div><button class="btn" id="tpl">${ic('dl')}Unduh template</button></div>
@@ -584,7 +642,7 @@ function bulk(){
   const load=name=>{BULK={name,rows:sampleRows()};toast('File dibaca: 12 baris');bulk()};
   $('#smp').onclick=()=>load('Watchlist_Scammer_Nov.xlsx');$('#fi').onchange=e=>e.target.files[0]&&load(e.target.files[0].name);
   const d=$('#drop');d.ondragover=e=>{e.preventDefault();d.classList.add('ov')};d.ondragleave=()=>d.classList.remove('ov');d.ondrop=e=>{e.preventDefault();d.classList.remove('ov');e.dataTransfer.files[0]&&load(e.dataTransfer.files[0].name)};
-  $('#tpl').onclick=()=>showCsv('Template_Watchlist_BRI.csv','KATEGORI;'+Object.values(FIELDS).join(';').toUpperCase());
+  $('#tpl').onclick=()=>showCsv('Template_Watchlist_BRI.csv','SUBKATEGORI;'+Object.values(FIELDS).join(';').toUpperCase());
   return}
  BULK.rows.forEach(validate);
  const c={Valid:0,Warning:0,Error:0};BULK.rows.forEach(r=>c[r.st]++);
@@ -592,8 +650,8 @@ function bulk(){
  $('#ib').innerHTML=`<div class="card"><div class="ch"><div><h2>2. Preview &amp; validasi · ${esc(BULK.name)}</h2><p>Klik sel untuk memperbaiki langsung. Validasi berjalan otomatis.</p></div><div class="sp"></div>
   <span class="chip" data-vf="all">Semua ${BULK.rows.length}</span><span class="chip" data-vf="Valid" style="color:var(--ok)">Valid ${c.Valid}</span><span class="chip" data-vf="Warning" style="color:var(--warn)">Warning ${c.Warning}</span><span class="chip" data-vf="Error" style="color:var(--err)">Error ${c.Error}</span></div>
   ${c.Error?`<div class="alert e">${ic('warn')}<span><b>${c.Error} baris masih error</b>Perbaiki dulu sebelum submit. Draft tetap bisa disimpan.</span></div>`:c.Warning?`<div class="alert w">${ic('warn')}<span><b>${c.Warning} warning perlu ditinjau</b>Variasi key dan mismatch Big Data akan direview AML.</span></div>`:`<div class="alert i">${ic('ok')}<span><b>Semua baris valid</b>Siap diajukan.</span></div>`}
-  <div class="tw"><table class="x" id="pv"><thead><tr><th class="rn">#</th><th>VALIDASI</th>${keys.map(k=>`<th>${k==='cat'?'KATEGORI':FIELDS[k].toUpperCase()}</th>`).join('')}<th></th></tr></thead><tbody>
-  ${BULK.rows.map((r,i)=>(vf==='all'||r.st===vf)?`<tr data-i="${i}"><td class="rn">${i+1}</td><td title="${esc(Object.entries(r.iss).map(([k,v])=>FIELDS[k]+': '+v[1]).join('\n'))}">${vBadge(r.st)}</td>${keys.map(k=>{const is=r.iss[k];return `<td contenteditable="true" data-k="${k}" class="${is?(is[0]==='e'?'ce':'cw'):''}" title="${is?esc(is[1]):''}">${esc(r[k]||'')}</td>`}).join('')}<td><button class="link" data-del="${i}" title="Hapus baris">${ic('x')}</button></td></tr>`:'').join('')}
+  <div class="tw"><table class="x" id="pv"><thead><tr><th class="rn">#</th><th>VALIDASI</th>${keys.map(k=>`<th>${k==='cat'?'SUBKATEGORI':FIELDS[k].toUpperCase()}</th>`).join('')}<th></th></tr></thead><tbody>
+  ${BULK.rows.map((r,i)=>(vf==='all'||r.st===vf)?`<tr data-i="${i}"><td class="rn">${i+1}</td><td title="${esc(Object.entries(r.iss).map(([k,v])=>(FIELDS[k]||'Subkategori')+': '+v[1]).join('\n'))}">${vBadge(r.st)}</td>${keys.map(k=>{const is=r.iss[k];return `<td contenteditable="true" data-k="${k}" class="${is?(is[0]==='e'?'ce':'cw'):''}" title="${is?esc(is[1]):''}">${esc(r[k]||'')}</td>`}).join('')}<td><button class="link" data-del="${i}" title="Hapus baris">${ic('x')}</button></td></tr>`:'').join('')}
   </tbody></table></div>
   <div class="pg"><span>Arahkan kursor ke sel berwarna untuk melihat penjelasan.</span><div class="pb"><button class="btn" id="bc" style="height:38px">Batal</button><button class="btn" id="bd" style="height:38px">Simpan draft</button><button class="btn pri" id="bs" style="height:38px" ${c.Error?'disabled':''}>Submit ke Checker</button></div></div></div>`;
  document.querySelectorAll('[data-vf]').forEach(ch=>{if(ch.dataset.vf===vf)ch.classList.add('act');ch.onclick=()=>{vf=ch.dataset.vf;bulk()}});
@@ -627,11 +685,12 @@ function vSubs(mode){
  subDetail(mode);
 }
 function applySub(s){const a=s.apply;if(!a)return;
- if(a.kind==='master'){a.data.mt==='src'?SOURCES.push(a.data.n):SUBC[a.data.c].push(a.data.n);return}
+ if(a.kind==='master'){const d=a.data;if(d.mt==='src'){(SRC[d.c]||(SRC[d.c]=[])).push(d.n)}else{const c=SUBC[d.c]?d.c:catOf(d.c);SUBC[c].push(d.n);SRC[d.n]=[]}SOURCES=[...new Set(Object.values(SRC).flat())];return}
  const e=ENT.find(x=>x.id===a.id);if(!e)return;const d=a.data;
  if(a.kind==='update'){if(d.sub)e.sub=d.sub;if(d.cif)e.cif=d.cif;if(d.alamat)e.vars.push({...e.vars[0],alamat:d.alamat,src:'Pengajuan '+s.id,ref:s.letters[0]})}
- if(a.kind==='delist')e.status='Delisted';if(a.kind==='react')e.status='Active';
- e.updated=new Date();e.hist.push({t:new Date(),a:{update:'Updated',delist:'Delisted',react:'Reactivated'}[a.kind],u:'via '+s.id,r:d.r||''})}
+ if(a.kind==='delist'){const ne=delistVars(e,d.vids,d.r,'via '+s.id);if(ne&&ne!==e){s.result=ne.id;log('Created',ne.id,ne.cat+' · dari '+e.id)}return}
+ if(a.kind==='react'){restoreToRejection(e,d.r,'via '+s.id);return}
+ e.updated=new Date();e.hist.push({t:new Date(),a:'Updated',u:'via '+s.id,r:d.r||''})}
 function subDetail(mode){
  const my=mode==='mysub',s=SUBS.find(x=>x.id===selSub);if(!s){$('#sd').innerHTML='<div class="empty">Pilih pengajuan</div>';return}
  const d=s.apply?.data||{};
@@ -640,8 +699,9 @@ function subDetail(mode){
  ${s.note?`<div class="alert e" style="margin-top:12px">${ic('warn')}<span><b>Catatan</b>${esc(s.note)}</span></div>`:''}
  <dl class="kv" style="margin:16px 0"><dt>Jenis pengajuan</dt><dd>${esc(s.type)}</dd><dt>Unit pengaju</dt><dd>${esc(s.unit)}</dd><dt>Maker</dt><dd>${esc(s.maker)}</dd><dt>Surat / referensi</dt><dd>${s.letters.map(esc).join(', ')}</dd>
  ${s.apply&&s.apply.kind!=='master'?`<dt>Entitas</dt><dd>${esc(s.apply.id||'—')}</dd>`:''}
+ ${s.apply?.kind==='delist'?`<dt>Variasi</dt><dd>${(d.vids||[]).length} variasi dipilih</dd><dt>Hasil</dt><dd>${s.result?'Dibuat '+s.result:ENT.find(x=>x.id===s.apply.id)?.cat==='Rejection List'?'Masuk Negative List · Delisting Rejection List (setelah approved)':'Pindah ke Delisting Akhir (setelah approved)'}</dd>`:''}
  ${s.apply?.kind==='update'?`<dt>Perubahan</dt><dd>${[d.sub&&'Subkategori → '+esc(d.sub),d.cif&&'CIF → '+esc(d.cif),d.alamat&&'Variasi alamat baru: '+esc(d.alamat)].filter(Boolean).join('<br>')||'—'}</dd>`:''}
- ${s.apply?.kind==='master'?`<dt>Master data</dt><dd>${d.mt==='src'?'Source':'Subcategory ('+esc(d.c)+')'}: ${esc(d.n)}</dd>`:''}
+ ${s.apply?.kind==='master'?`<dt>Master data</dt><dd>${d.mt==='src'?'Source':'Subcategory'} di ${esc(d.c)}: ${esc(d.n)}</dd>`:''}
  ${d.r?`<dt>Alasan</dt><dd>${esc(d.r)}</dd>`:''}
  ${!s.apply?`<dt>Jumlah record</dt><dd>${s.n}</dd><dt>Hasil validasi</dt><dd>${s.err?`<span class="badge b-e">${s.err} error</span> `:''}${s.warn?`<span class="badge b-w">${s.warn} warning</span> `:''}${!s.err&&!s.warn?'<span class="badge b-ok">Semua valid</span>':''}</dd>`:''}</dl>
  ${!s.apply?`<div class="tw" style="max-height:220px"><table class="x"><thead><tr><th>#</th><th>NAMA</th><th>KATEGORI</th><th>PRIMARY KEY</th><th>VALIDASI</th></tr></thead><tbody>${Array.from({length:Math.min(5,s.n)},(_,i)=>{const st=i<s.err?'Error':i<s.err+s.warn?'Warning':'Valid';return `<tr><td>${i+1}</td><td>${NAMES[(i*7+s.n)%NAMES.length]}</td><td>${/DTTOT/.test(s.title)?'DTTOT':/Negative|Fraud/.test(s.title)?'Negative List':'Scammer'}</td><td>${/DTTOT/.test(s.title)?'DT-0'+(300+i):'3271'+String(1e11+i*7919).slice(0,12)}</td><td>${vBadge(st)}${st==='Warning'?' <small style="color:var(--warn)">mismatch Big Data</small>':''}</td></tr>`}).join('')}</tbody></table></div><p class="note">Menampilkan ${Math.min(5,s.n)} dari ${s.n} record.</p>`:''}
@@ -667,10 +727,10 @@ function vUpload(){
  $('#ut').onclick=e=>{const b=e.target.closest('button');if(b){upTab=b.dataset.t;vUpload()}};
  if(!aml){$('#ub').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Hanya AML yang dapat membentuk file distribusi.</b><br>Ganti role ke AML Admin untuk mencoba.</p></div>`;return}
  if(upTab==='ba')return baView();
- const cols=FMT[upTab],act=ENT.filter(e=>e.status==='Active'),flat=upTab==='iris'?act.flatMap(e=>e.vars.map(v=>({e,v}))):act.map(e=>({e,v:e.vars[0]}));
- const row=({e,v})=>upTab==='hue'?[e.id,e.nik||'NULL',v.nama,v.tgl.toISOString().slice(0,10),e.cat,v.src,'ACTIVE']:[e.id,v.nama,v.tempat,v.tgl.toISOString().slice(0,10),v.alamat,e.cat==='Negative List'?'NEGATIVE':'REJECTION',KEY[e.cat]==='Kode Dugaan'?e.key:'NULL'];
- $('#ub').innerHTML=`<div class="card"><div class="ch"><div><h2>${upTab==='hue'?'Patching HUE':'Patching IRIS'}</h2><p>Hanya record Active. Tidak ada filter tambahan; urutan kolom terkunci sesuai format yang disetujui.</p></div><div class="sp"></div><span class="lock">${ic('lock')}Fixed approved format</span></div>
- ${upTab==='iris'?`<div class="alert i">${ic('db')}<span><b>DTTOT/DPPSPM: kombinasi variasi dibentuk otomatis</b>Setiap kombinasi Nama × Tanggal Lahir × Tempat Lahir × Alamat menjadi baris terpisah, dengan provenance tetap tersimpan.</span></div>`:''}
+ const cols=FMT[upTab],act=ENT.filter(e=>e.status==='Active'&&e.cat!=='Delisting Akhir'),flat=upTab==='iris'?act.flatMap(e=>live(e).map(v=>({e,v}))):act.map(e=>({e,v:live(e)[0]}));
+ const row=({e,v})=>upTab==='hue'?[e.id,e.nik||'NULL',v.nama,v.tgl.toISOString().slice(0,10),e.sub,v.src,'ACTIVE']:[e.id,v.nama,v.tempat,v.tgl.toISOString().slice(0,10),v.alamat,e.cat==='Negative List'?'NEGATIVE':'REJECTION',KEY[e.sub]==='Kode Dugaan'?e.key:'NULL'];
+ $('#ub').innerHTML=`<div class="card"><div class="ch"><div><h2>${upTab==='hue'?'Patching HUE':'Patching IRIS'}</h2><p>Hanya record Active di Rejection List dan Negative List (Delisting Akhir tidak ikut). Tidak ada filter tambahan; urutan kolom terkunci sesuai format yang disetujui.</p></div><div class="sp"></div><span class="lock">${ic('lock')}Fixed approved format</span></div>
+ ${upTab==='iris'?`<div class="alert i">${ic('db')}<span><b>DTTOT/DPPSPM: kombinasi variasi dibentuk otomatis</b>Untuk DTTOT &amp; DPPSPM, setiap kombinasi Nama × Tanggal Lahir × Tempat Lahir × Alamat menjadi baris terpisah, dengan provenance tetap tersimpan.</span></div>`:''}
  ${gen[upTab]?`<div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${flat.slice(0,15).map((r,i)=>`<tr><td class="rn">${i+1}</td>${row(r).map(v=>v==='NULL'?'<td class="n">NULL</td>':`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
   <div class="pg"><span>${flat.length} baris dihasilkan · ${dstr(today)} · as-of ${dstr(today)}</span><div class="pb"><button class="btn" id="csv">${ic('dl')}CSV</button><button class="btn" id="xls">${ic('dl')}Excel</button></div></div>`
   :`<div class="empty">${ic('file')}<p>Belum ada file yang dibentuk untuk periode ini.</p><button class="btn pri" id="gn">Generate ${upTab.toUpperCase()}</button></div>`}</div>`;
@@ -711,10 +771,10 @@ function vMaster(){
  <div class="tabs" id="mt">${Object.entries(T).map(([k,l])=>`<button data-t="${k}" class="${mTab===k?'on':''}">${l}</button>`).join('')}</div></div><div class="card" id="mb"></div>`;
  $('#mt').onclick=e=>{const b=e.target.closest('button');if(b){mTab=b.dataset.t;vMaster()}};
  let head,rows;
- if(mTab==='cat'){head=['KATEGORI','PRIMARY KEY','LIST','JUMLAH RECORD','STATUS'];rows=CATS.map(c=>[c,KEY[c],c==='Negative List'?'Negative':'Rejection',fmt(TOT[c]),'Active'])}
- if(mTab==='sub'){head=['SUBKATEGORI','KATEGORI','STATUS'];rows=CATS.flatMap(c=>SUBC[c].map(s=>[s,c,'Active']))}
- if(mTab==='src'){head=['SUMBER','JENIS','STATUS'];rows=SOURCES.map(s=>[s,/BRI|Unit/.test(s)?'Internal':'Eksternal','Active'])}
- if(mTab==='dict'){head=['FIELD','LABEL','TIPE ATRIBUT','FORMAT',...CATS.map(c=>'WAJIB · '+c.toUpperCase())];rows=DICT.map(([k,l,t,f])=>[k,l,t,f,...CATS.map(c=>MAND[c].includes(k)?'Ya':'—')])}
+ if(mTab==='cat'){head=['KATEGORI','SUBKATEGORI','JUMLAH RECORD','IKUT PATCHING','STATUS'];rows=ALLCATS.map(c=>[c,SUBC[c].join(', '),fmt(SUBC[c].reduce((a,x)=>a+TOT[x],0)),c==='Delisting Akhir'?'Tidak':'Ya','Active'])}
+ if(mTab==='sub'){head=['SUBKATEGORI','KATEGORI','PRIMARY KEY','JUMLAH SUMBER','STATUS'];rows=CATS.flatMap(c=>SUBC[c].map(x=>[x,c,KEY[x],String(SRC[x].length),'Active']))}
+ if(mTab==='src'){head=['SUMBER','SUBKATEGORI','KATEGORI','STATUS'];rows=CATS.flatMap(c=>SUBC[c].flatMap(x=>SRC[x].map(z=>[z,x,c,'Active'])))}
+ if(mTab==='dict'){const G=['DTTOT & DPPSPM','Scammer','Blokir'];head=['FIELD','LABEL','TIPE ATRIBUT','FORMAT','WAJIB · DTTOT & DPPSPM','WAJIB · SCAMMER','WAJIB · SUBKATEGORI LAIN'];rows=DICT.map(([k,l,t,f])=>[k,l,t,f,...G.map(c=>MAND[c].includes(k)?'Ya':'—')])}
  if(mTab==='user'){head=['USER','GROUP (SCOPE DATA)','ROLE (AKSI)','STATUS'];rows=[['Rina Anggraeni','AML Group · semua kategori','AML Admin','Active'],['Siti Maharani','Unit Kerja A · Scammer, Negative List','Maker','Active'],['Bagus Pranoto','Unit Kerja A · Scammer, Negative List','Checker/Signer','Active'],['Doni Pratama','Unit Kerja B · Negative List','Maker','Active'],['Audit Internal','Read-only · semua','Auditor','Active']]}
  $('#mb').innerHTML=`<div class="bar2"><div class="sp" style="flex:1"></div><span class="lock">${ic('lock')}Hanya-baca</span>${aml&&(mTab==='src'||mTab==='sub')?`<button class="btn pri" id="madd">${ic('in')}Ajukan perubahan via Submit Data</button>`:''}</div>
  <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>v==='Active'?`<td>${stBadge('Active')}</td>`:`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
