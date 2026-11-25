@@ -152,6 +152,12 @@ pre.code{background:var(--head);border-radius:10px;padding:12px;max-height:300px
 .sumg div{border-radius:12px;padding:10px 14px;cursor:pointer;border:2px solid transparent}.sumg div.act{border-color:currentColor}.sumg small{display:block;font-size:12px}.sumg b{font-size:22px}
 .ci{width:100%;min-width:110px;height:30px;border:1px solid transparent;background:transparent;border-radius:6px;padding:0 6px;font-size:13px}.ci:hover{border-color:var(--line)}.ci[data-p$=".alamat"]{min-width:260px}.ci[data-p$=".nama"]{min-width:170px}select.ci{min-width:180px}.ci[data-p$=".ref"]{min-width:170px}.ci:focus{outline:0;border-color:var(--blue2);background:var(--card)}
 .x td.chg{background:var(--sky)!important}.x td.chg .ci{font-weight:600;color:var(--blue)}.x td.lk{background:var(--head);color:var(--mute)}.x tr.newv td{background:var(--okb)}
+.ss{position:relative;display:block;min-width:0}.ss-b{width:100%;height:40px;border:1px solid var(--line);border-radius:9px;background:var(--card);text-align:left;padding:0 30px 0 12px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;cursor:pointer}
+.ss-b::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:1.6px solid var(--mute);border-bottom:1.6px solid var(--mute);transform:translateY(-70%) rotate(45deg)}
+.ss-b.ci{height:30px;font-size:13px;border-color:transparent;background:transparent}.ss-b.ci:hover{border-color:var(--line)}.ss-b.date{height:38px;border-radius:10px;font-size:13px}
+.ss-m{position:fixed;z-index:95;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px #0003;padding:6px;display:flex;flex-direction:column;max-height:320px}
+.ss-m input{height:36px;border:1px solid var(--line);border-radius:8px;padding:0 10px;margin-bottom:6px;font-size:14px;flex:none}.ss-m input:focus{outline:2px solid var(--blue2)}
+.ss-l{overflow:auto}.ss-o{padding:7px 10px;border-radius:7px;cursor:pointer;font-size:13.5px}.ss-o:hover,.ss-o.k{background:var(--sky)}.ss-o.on{color:var(--blue2);font-weight:600}.ss-g{padding:8px 10px 3px;font-size:11px;color:var(--mute);font-weight:600}.ss-e{padding:10px;color:var(--mute);font-size:13px}
 .toasts{position:fixed;bottom:20px;right:20px;z-index:90;display:flex;flex-direction:column;gap:8px}
 .toast{background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px #0004;animation:tin .25s}
 @keyframes tin{from{transform:translateY(10px);opacity:0}}
@@ -1056,10 +1062,14 @@ const mst=k=>MSTAT[mTab+'|'+k]||'Active';
 function mForm(title,fields,onSave){
  openModal(`<h2>${esc(title)}</h2><form id="mf" novalidate style="margin-top:14px">${fields.map(f=>`<div class="fld"><label>${f.l}${f.req?' <i>*</i>':''}</label>${
   f.t==='select'?`<select name="${f.n}">${f.o.map(o=>`<option ${o===f.v?'selected':''}>${esc(o)}</option>`).join('')}</select>`
-  :f.t==='checks'?`<div class="var" style="margin:0;max-height:200px;overflow:auto">${f.o.map(o=>`<label style="display:flex;gap:8px;padding:3px 0;font-weight:400"><input type="checkbox" name="${f.n}" value="${esc(o)}" ${(f.v||[]).includes(o)?'checked':''}> ${esc(o)}</label>`).join('')}</div>`
+  :f.t==='checks'?`${f.o.length>8?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><input class="ci" data-cs="${f.n}" placeholder="Cari… (${f.o.length} pilihan)" style="flex:1;height:34px;border:1px solid var(--line)"><button type="button" class="link" data-ca="${f.n}">Pilih yang tampil</button><button type="button" class="link" data-cn="${f.n}">Kosongkan</button></div>`:''}<div class="var" data-cl="${f.n}" style="margin:0;max-height:240px;overflow:auto">${f.o.map(o=>`<label style="display:flex;gap:8px;padding:3px 0;font-weight:400"><input type="checkbox" name="${f.n}" value="${esc(o)}" ${(f.v||[]).includes(o)?'checked':''}> ${esc(o)}</label>`).join('')}</div>`
   :`<input name="${f.n}" value="${esc(f.v||'')}">`}</div>`).join('')}
  <div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn pri">Simpan</button></div></form>`);
  $('#modal').querySelector('[data-x]').onclick=closeModal;
+ const M=$('#modal');M.querySelectorAll('[data-cs]').forEach(i=>i.oninput=()=>{const v=i.value.toLowerCase();M.querySelectorAll(`[data-cl="${i.dataset.cs}"] label`).forEach(l=>l.hidden=!l.textContent.toLowerCase().includes(v))});
+ M.querySelectorAll('[data-ca]').forEach(b=>b.onclick=()=>M.querySelectorAll(`[data-cl="${b.dataset.ca}"] label:not([hidden]) input`).forEach(c=>c.checked=true));
+ M.querySelectorAll('[data-cn]').forEach(b=>b.onclick=()=>M.querySelectorAll(`[data-cl="${b.dataset.cn}"] input`).forEach(c=>c.checked=false));
+ M.querySelectorAll('[data-cs]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')e.preventDefault()});
  $('#mf').onsubmit=ev=>{ev.preventDefault();const f=ev.target,d={};let ok=true;
   fields.forEach(x=>{const w=f.querySelector(`[name="${x.n}"]`).closest('.fld');w.classList.remove('bad');w.querySelector('.em')?.remove();
    d[x.n]=x.t==='checks'?[...f.querySelectorAll(`[name="${x.n}"]:checked`)].map(c=>c.value):f[x.n].value.trim();
@@ -1145,6 +1155,29 @@ function vUsers(){
  $('#uadd').onclick=()=>edit(null);
  document.querySelectorAll('#ub2 [data-ed]').forEach(b=>b.onclick=()=>edit(rows[+b.dataset.ed]));
 }
+/* ---------- searchable selects ---------- */
+let ssOpen=null;
+function ssClose(){if(ssOpen){ssOpen.remove();ssOpen=null}}
+function ssEnhance(sel){if(sel.dataset.ss||sel.multiple||sel.options.length<=8||sel.closest('.ss-m'))return;sel.dataset.ss=1;
+ const b=document.createElement('button');b.type='button';b.className='ss-b'+(sel.classList.contains('ci')?' ci':'')+(sel.classList.contains('date')?' date':'');
+ if(sel.style.maxWidth)b.style.maxWidth=sel.style.maxWidth;
+ const lab=()=>{b.textContent=sel.options[sel.selectedIndex]?.text||'—'};lab();sel.addEventListener('change',lab);
+ sel.style.display='none';sel.insertAdjacentElement('afterend',b);
+ b.onclick=ev=>{ev.stopPropagation();if(ssOpen&&ssOpen._b===b)return ssClose();ssClose();
+  const m=document.createElement('div');m.className='ss-m';m._b=b;const r=b.getBoundingClientRect(),w=Math.max(r.width,260);
+  m.style.left=Math.min(r.left,innerWidth-w-8)+'px';m.style.width=w+'px';const below=innerHeight-r.bottom>330;m.style[below?'top':'bottom']=(below?r.bottom+4:innerHeight-r.top+4)+'px';
+  const items=[];[...sel.children].forEach(c=>{if(c.tagName==='OPTGROUP'){items.push({g:c.label});[...c.children].forEach(o=>items.push({o}))}else items.push({o:c})});
+  m.innerHTML=`<input placeholder="Cari… (${sel.options.length} pilihan)"><div class="ss-l"></div>`;document.body.append(m);ssOpen=m;
+  const inp=m.querySelector('input'),L=m.querySelector('.ss-l');let k=0;
+  const draw=()=>{const q=inp.value.toLowerCase();let html='',g=null,n=0;items.forEach(it=>{if(it.g){g=it.g;return}const t=it.o.text;if(q&&!t.toLowerCase().includes(q)&&!(g||'').toLowerCase().includes(q))return;if(g){html+=`<div class="ss-g">${esc(g)}</div>`;g=null}html+=`<div class="ss-o ${it.o.selected?'on':''} ${n===k?'k':''}" data-i="${it.o.index}">${esc(t)}</div>`;n++});L.innerHTML=html||'<div class="ss-e">Tidak ditemukan</div>';L._n=n};
+  const pick=i=>{sel.selectedIndex=i;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));lab();ssClose()};
+  draw();inp.focus({preventScroll:true});inp.oninput=()=>{k=0;draw()};
+  inp.onkeydown=e=>{if(e.key==='ArrowDown'){k=Math.min(k+1,(L._n||1)-1);draw();e.preventDefault()}else if(e.key==='ArrowUp'){k=Math.max(0,k-1);draw();e.preventDefault()}else if(e.key==='Enter'){const o=L.querySelector('.ss-o.k')||L.querySelector('.ss-o');if(o)pick(+o.dataset.i);e.preventDefault()}else if(e.key==='Escape'){ssClose();b.focus()}};
+  L.onmousedown=e=>{const o=e.target.closest('.ss-o');if(o){e.preventDefault();pick(+o.dataset.i)}};
+  m.onclick=e=>e.stopPropagation()};
+}
+document.addEventListener('click',ssClose);addEventListener('resize',ssClose);document.addEventListener('scroll',e=>{if(ssOpen&&!ssOpen.contains(e.target))ssClose()},true);
+new MutationObserver(()=>document.querySelectorAll('select:not([data-ss])').forEach(ssEnhance)).observe(document.body,{childList:true,subtree:true});
 /* ---------- start ---------- */
 assignAll();
 const h=location.hash.slice(1);if(TITLES[h])page=h;
