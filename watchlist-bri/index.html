@@ -246,8 +246,9 @@ const SUBC={'Rejection List':['DTTOT & DPPSPM','Scammer','Judol'],'Negative List
 const CATS=['Rejection List','Negative List'],ALLCATS=[...CATS,'Delisting Akhir'];
 const catOf=sub=>Object.keys(SUBC).find(c=>SUBC[c].includes(sub));
 let SOURCES=[...new Set(Object.values(SRC).flat())];
-const KEY=new Proxy({},{get:(_,k)=>k==='DTTOT & DPPSPM'?'Kode Dugaan':'NIK'});
-const MAND=new Proxy({},{get:(_,k)=>k==='DTTOT & DPPSPM'?['nama','kode','tempat_lahir','tgl_lahir','sumber','no_surat']:k==='Scammer'?['nama','nik','sumber','no_surat','tgl_lapor']:['nama','nik','sumber','no_surat']});
+const KEYO={},MANDO={},MSTAT={};
+const KEY=new Proxy({},{get:(_,k)=>KEYO[k]||(k==='DTTOT & DPPSPM'?'Kode Dugaan':'NIK')});
+const MAND=new Proxy({},{get:(_,k)=>MANDO[k]?MANDO[k]:k==='DTTOT & DPPSPM'?['nama','kode','tempat_lahir','tgl_lahir','sumber','no_surat']:k==='Scammer'?['nama','nik','sumber','no_surat','tgl_lapor']:['nama','nik','sumber','no_surat']});
 const UNITS=['Unit Kerja A','Unit Kerja B','Unit Kerja C','AML Group'];
 const NAMES=['Andi Saputra','Budi Santoso','Citra Dewi','Darma Wijaya','Eko Prasetyo','Fitri Handayani','Gilang Ramadhan','Hendra Kusuma','Indah Permata','Joko Susilo','Kartika Sari','Lukman Hakim','Maya Anggraini','Nanda Pratama','Oki Firmansyah','Putri Lestari','Rizky Maulana','Sari Wulandari','Taufik Hidayat','Umar Faruq','Vina Melati','Wahyu Nugroho','Yusuf Abdullah','Zahra Amalia'];
 const CITIES=['Jakarta','Bandung','Surabaya','Medan','Depok','Makassar','Semarang','Bekasi'];
@@ -541,7 +542,7 @@ let subType='new',pre=null;
 const STYPE={new:'Data baru',update:'Ubah data',delist:'Delisting',react:'Kembalikan ke Rejection',master:'Master data'};
 function vInput(){
  if(roleKey==='checker'){$('#view').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Role Checker/Signer tidak dapat mengajukan data.</b><br>Ganti role ke Maker atau AML Admin dari menu profil.</p></div>`;return}
- const types=Object.keys(STYPE).filter(k=>roleKey==='aml'||!['react','master'].includes(k));if(!types.includes(subType))subType='new';
+ const types=Object.keys(STYPE).filter(k=>k!=='master'&&(roleKey==='aml'||k!=='react'));if(!types.includes(subType))subType='new';
  $('#view').innerHTML=`<h1>Submit Data</h1><p class="sub">Satu-satunya pintu untuk semua perubahan Watchlist. Setiap pengajuan masuk ke My Submission dan melalui approval sebelum mengubah database.</p>
  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px"><div class="tabs" id="stt">${types.map(k=>`<button data-t="${k}" class="${subType===k?'on':''}">${STYPE[k]}</button>`).join('')}</div>
  ${subType==='new'?`<div class="sp" style="flex:1"></div><div class="tabs" id="it"><button data-t="single" class="${inTab==='single'?'on':''}">Single Entry</button><button data-t="bulk" class="${inTab==='bulk'?'on':''}">Bulk Upload</button></div>`:''}</div><div id="ib"></div>`;
@@ -604,13 +605,13 @@ function bindChange(kind,ok){
  f.onsubmit=ev=>{ev.preventDefault();make(false)};$('#cdr').onclick=()=>make(true);
 }
 function single(){
- const subs=ROLE.scope.filter(x=>!['Delisting Akhir','Delisting Rejection List'].includes(x));if(!subs.includes(scCat))scCat=subs[0];
+ const subs=ROLE.scope.filter(x=>!['Delisting Akhir','Delisting Rejection List'].includes(x)&&MSTAT['sub|'+x]!=='Inactive');if(!subs.includes(scCat))scCat=subs[0];
  const isKD=KEY[scCat]==='Kode Dugaan';const show=Object.keys(FIELDS).filter(k=>!(isKD&&k==='rek')&&!(!isKD&&k==='kode'));
  $('#ib').innerHTML=`<div class="card"><form id="sf" novalidate><div class="fgrid"><div class="fld"><label>Subkategori <i>*</i></label><select id="scat">${CATS.map(c=>{const o=SUBC[c].filter(x=>subs.includes(x));return o.length?`<optgroup label="${c}">${o.map(x=>`<option ${x===scCat?'selected':''}>${x}</option>`).join('')}</optgroup>`:''}).join('')}</select></div>
  <div class="fld"><label>Kategori</label><input value="${catOf(scCat)}" disabled></div></div>
  <div class="alert i">${ic('lock')}<span>Primary key untuk <b style="display:inline">${scCat}</b>: ${KEY[scCat]}. Field bertanda * wajib untuk subkategori ini.</span></div>
  <div class="fgrid">${show.map(k=>{const req=MAND[scCat].includes(k);const t=k.startsWith('tgl')?'date':'text';
-  return `<div class="fld"><label>${FIELDS[k]} ${req?'<i>*</i>':''}</label>${k==='sumber'?`<select name="${k}"><option value="">Pilih sumber</option>${SRC[scCat].map(s=>`<option>${esc(s)}</option>`).join('')}</select>`:`<input name="${k}" type="${t}" ${k==='nik'?'inputmode="numeric" maxlength="16" placeholder="16 digit"':''}>`}</div>`}).join('')}</div>
+  return `<div class="fld"><label>${FIELDS[k]} ${req?'<i>*</i>':''}</label>${k==='sumber'?`<select name="${k}"><option value="">Pilih sumber</option>${SRC[scCat].filter(z=>MSTAT['src|'+z]!=='Inactive').map(s=>`<option>${esc(s)}</option>`).join('')}</select>`:`<input name="${k}" type="${t}" ${k==='nik'?'inputmode="numeric" maxlength="16" placeholder="16 digit"':''}>`}</div>`}).join('')}</div>
  <div class="mact"><button type="button" class="btn" id="lk">${ic('search')}Lookup Big Data</button><button type="button" class="btn" id="dr">Simpan draft</button><button class="btn pri">Validasi &amp; lanjut ke preview</button></div></form></div>`;
  $('#scat').onchange=e=>{scCat=e.target.value;single()};
  const f=$('#sf');
@@ -764,22 +765,65 @@ function at(){const qq=aq.toLowerCase();const rows=AUDIT.filter(a=>(!aact||a.act
 
 /* ================= MASTER DATA ================= */
 let mTab='cat';
+let USERS=[{n:'Rina Anggraeni',g:'AML Group',sc:'Semua subkategori',r:'AML Admin'},{n:'Siti Maharani',g:'Unit Kerja A',sc:'Scammer, Judol, Blokir',r:'Maker'},{n:'Bagus Pranoto',g:'Unit Kerja A',sc:'Scammer, Judol, Blokir',r:'Checker/Signer'},{n:'Doni Pratama',g:'Unit Kerja B',sc:'Negative News, SIPENDAR',r:'Maker'},{n:'Audit Internal',g:'Auditor',sc:'Semua subkategori',r:'Auditor (read-only)'}];
+const ROLESL=['AML Admin','Maker','Checker/Signer','Auditor (read-only)'];
+const mst=k=>MSTAT[mTab+'|'+k]||'Active';
+function mForm(title,fields,onSave){
+ openModal(`<h2>${esc(title)}</h2><form id="mf" novalidate style="margin-top:14px">${fields.map(f=>`<div class="fld"><label>${f.l}${f.req?' <i>*</i>':''}</label>${
+  f.t==='select'?`<select name="${f.n}">${f.o.map(o=>`<option ${o===f.v?'selected':''}>${esc(o)}</option>`).join('')}</select>`
+  :f.t==='checks'?`<div class="var" style="margin:0;max-height:200px;overflow:auto">${f.o.map(o=>`<label style="display:flex;gap:8px;padding:3px 0;font-weight:400"><input type="checkbox" name="${f.n}" value="${esc(o)}" ${(f.v||[]).includes(o)?'checked':''}> ${esc(o)}</label>`).join('')}</div>`
+  :`<input name="${f.n}" value="${esc(f.v||'')}">`}</div>`).join('')}
+ <div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn pri">Simpan</button></div></form>`);
+ $('#modal').querySelector('[data-x]').onclick=closeModal;
+ $('#mf').onsubmit=ev=>{ev.preventDefault();const f=ev.target,d={};let ok=true;
+  fields.forEach(x=>{const w=f.querySelector(`[name="${x.n}"]`).closest('.fld');w.classList.remove('bad');w.querySelector('.em')?.remove();
+   d[x.n]=x.t==='checks'?[...f.querySelectorAll(`[name="${x.n}"]:checked`)].map(c=>c.value):f[x.n].value.trim();
+   if(x.req&&!d[x.n].length){ok=false;w.classList.add('bad');w.insertAdjacentHTML('beforeend','<span class="em">Wajib diisi</span>')}});
+  if(!ok)return;const err=onSave(d);if(err){toast(err);return}closeModal();vMaster()};
+}
+function renameEverywhere(kind,old,nw){
+ if(kind==='cat'){SUBC[nw]=SUBC[old];delete SUBC[old];[CATS,ALLCATS].forEach(a=>{const i=a.indexOf(old);if(i>=0)a[i]=nw});ENT.forEach(e=>{if(e.cat===old)e.cat=nw})}
+ if(kind==='sub'){const c=catOf(old);SUBC[c][SUBC[c].indexOf(old)]=nw;SRC[nw]=SRC[old];delete SRC[old];TOT[nw]=TOT[old]||0;if(KEYO[old])KEYO[nw]=KEYO[old];if(MANDO[old])MANDO[nw]=MANDO[old];ENT.forEach(e=>{if(e.sub===old)e.sub=nw});Object.values(ROLES).forEach(r=>{const i=r.scope.indexOf(old);if(i>=0)r.scope[i]=nw})}
+ if(kind==='src'){Object.values(SRC).forEach(a=>{const i=a.indexOf(old);if(i>=0)a[i]=nw});ENT.forEach(e=>e.vars.forEach(v=>{if(v.src===old)v.src=nw}))}
+ SOURCES=[...new Set(Object.values(SRC).flat())];
+}
 function vMaster(){
  const aml=roleKey==='aml';
  const T={cat:'Category',sub:'Subcategory',src:'Source',dict:'Data Dictionary',user:'User & Role'};
- $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Master Data &amp; Administration</h1><p class="sub" style="margin:0">Tampilan hanya-baca. Perubahan master data diajukan lewat Submit Data dan disetujui AML Group.</p></div>
+ const allSubs=CATS.flatMap(c=>SUBC[c]);
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Master Data &amp; Administration</h1><p class="sub" style="margin:0">${aml?'Super administrator: tambah, ubah, dan nonaktifkan master data langsung. Semua perubahan tercatat di Audit Trail.':'Hanya-baca untuk role Anda.'}</p></div>
  <div class="tabs" id="mt">${Object.entries(T).map(([k,l])=>`<button data-t="${k}" class="${mTab===k?'on':''}">${l}</button>`).join('')}</div></div><div class="card" id="mb"></div>`;
  $('#mt').onclick=e=>{const b=e.target.closest('button');if(b){mTab=b.dataset.t;vMaster()}};
  let head,rows;
- if(mTab==='cat'){head=['KATEGORI','SUBKATEGORI','JUMLAH RECORD','IKUT PATCHING','STATUS'];rows=ALLCATS.map(c=>[c,SUBC[c].join(', '),fmt(SUBC[c].reduce((a,x)=>a+TOT[x],0)),c==='Delisting Akhir'?'Tidak':'Ya','Active'])}
- if(mTab==='sub'){head=['SUBKATEGORI','KATEGORI','PRIMARY KEY','JUMLAH SUMBER','STATUS'];rows=CATS.flatMap(c=>SUBC[c].map(x=>[x,c,KEY[x],String(SRC[x].length),'Active']))}
- if(mTab==='src'){head=['SUMBER','SUBKATEGORI','KATEGORI','STATUS'];rows=CATS.flatMap(c=>SUBC[c].flatMap(x=>SRC[x].map(z=>[z,x,c,'Active'])))}
- if(mTab==='dict'){const G=['DTTOT & DPPSPM','Scammer','Blokir'];head=['FIELD','LABEL','TIPE ATRIBUT','FORMAT','WAJIB · DTTOT & DPPSPM','WAJIB · SCAMMER','WAJIB · SUBKATEGORI LAIN'];rows=DICT.map(([k,l,t,f])=>[k,l,t,f,...G.map(c=>MAND[c].includes(k)?'Ya':'—')])}
- if(mTab==='user'){head=['USER','GROUP (SCOPE DATA)','ROLE (AKSI)','STATUS'];rows=[['Rina Anggraeni','AML Group · semua kategori','AML Admin','Active'],['Siti Maharani','Unit Kerja A · Scammer, Negative List','Maker','Active'],['Bagus Pranoto','Unit Kerja A · Scammer, Negative List','Checker/Signer','Active'],['Doni Pratama','Unit Kerja B · Negative List','Maker','Active'],['Audit Internal','Read-only · semua','Auditor','Active']]}
- $('#mb').innerHTML=`<div class="bar2"><div class="sp" style="flex:1"></div><span class="lock">${ic('lock')}Hanya-baca</span>${aml&&(mTab==='src'||mTab==='sub')?`<button class="btn pri" id="madd">${ic('in')}Ajukan perubahan via Submit Data</button>`:''}</div>
- <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>v==='Active'?`<td>${stBadge('Active')}</td>`:`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
- ${mTab==='dict'?'<p class="note">Mandatory fields configurable per kategori. Satu data dictionary untuk common dan category-specific attributes.</p>':''}`;
- const ma=$('#madd');if(ma)ma.onclick=()=>{subType='master';go('input')};
+ if(mTab==='cat'){head=['KATEGORI','SUBKATEGORI','JUMLAH RECORD','IKUT PATCHING','STATUS'];rows=ALLCATS.map(c=>({k:c,c:[c,SUBC[c].join(', ')||'—',fmt(SUBC[c].reduce((a,x)=>a+(TOT[x]||0),0)),c==='Delisting Akhir'?'Tidak':'Ya'],lock:c==='Delisting Akhir'}))}
+ if(mTab==='sub'){head=['SUBKATEGORI','KATEGORI','PRIMARY KEY','JUMLAH SUMBER','STATUS'];rows=allSubs.map(x=>({k:x,c:[x,catOf(x),KEY[x],String(SRC[x].length)]}))}
+ if(mTab==='src'){head=['SUMBER','SUBKATEGORI','KATEGORI','STATUS'];rows=allSubs.flatMap(x=>SRC[x].map(z=>({k:z,sub:x,c:[z,x,catOf(x)]})))}
+ if(mTab==='dict'){head=['FIELD','LABEL','TIPE ATRIBUT','FORMAT','WAJIB DI SUBKATEGORI','STATUS'];rows=DICT.map(([k,l,t,f])=>({k,c:[k,l,t,f,(()=>{const w=allSubs.filter(x=>MAND[x].includes(k));return w.length===allSubs.length?'Semua':w.length?w.join(', '):'—'})()]}))}
+ if(mTab==='user'){head=['USER','GROUP','SCOPE DATA','ROLE (AKSI)','STATUS'];rows=USERS.map(u=>({k:u.n,c:[u.n,u.g,u.sc,u.r]}))}
+ $('#mb').innerHTML=`<div class="bar2"><label class="search" style="flex:0 1 360px">${ic('search')}<input id="mq" placeholder="Cari ${T[mTab].toLowerCase()}…"></label><div style="flex:1"></div>${aml?`<button class="btn pri" id="madd">${ic('in')}Tambah ${T[mTab]}</button>`:`<span class="lock">${ic('lock')}Hanya-baca</span>`}</div>
+ <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}${aml?'<th>ACTION</th>':''}</tr></thead><tbody>${rows.map((r,i)=>`<tr data-r="${i}" data-txt="${esc(r.c.join(' ').toLowerCase())}">${r.c.map(v=>`<td style="white-space:normal;max-width:420px">${esc(v)}</td>`).join('')}<td>${stBadge(mst(r.k))}</td>${aml?`<td>${r.lock?'<span class="lock">'+ic('lock')+'Sistem</span>':`<button class="link" data-ed="${i}">Edit</button> <button class="link" data-tg="${i}" style="color:var(--${mst(r.k)==='Active'?'err':'ok'})">${mst(r.k)==='Active'?'Nonaktifkan':'Aktifkan'}</button>`}</td>`:''}</tr>`).join('')}</tbody></table></div>
+ <p class="note">${rows.length} ${T[mTab].toLowerCase()}. ${mTab==='src'?'Sumber terikat ke satu subkategori.':mTab==='dict'?'Mandatory field diatur per subkategori.':'Item nonaktif tidak bisa dipilih di Submit Data, tapi data lamanya tetap tersimpan.'}</p>`;
+ $('#mq').oninput=e=>{const v=e.target.value.toLowerCase();document.querySelectorAll('#mb tr[data-txt]').forEach(t=>t.hidden=!t.dataset.txt.includes(v))};
+ if(!aml)return;
+ const done=(a,k)=>{log('Master data '+a,T[mTab],k);toast(T[mTab]+' "'+k+'" '+a)};
+ document.querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{const r=rows[+b.dataset.tg],id=mTab+'|'+r.k;MSTAT[id]=mst(r.k)==='Active'?'Inactive':'Active';done(MSTAT[id]==='Active'?'diaktifkan':'dinonaktifkan',r.k);vMaster()});
+ const edit=r=>{
+  if(mTab==='cat')mForm(r?'Ubah kategori':'Tambah kategori',[{n:'n',l:'Nama kategori',v:r?.k,req:1}],d=>{if(r){if(d.n!==r.k){if(SUBC[d.n])return 'Nama sudah dipakai';renameEverywhere('cat',r.k,d.n)}done('diubah',d.n)}else{if(SUBC[d.n])return 'Kategori sudah ada';SUBC[d.n]=[];CATS.push(d.n);ALLCATS.splice(ALLCATS.length-1,0,d.n);done('ditambahkan',d.n)}});
+  if(mTab==='sub')mForm(r?'Ubah subkategori':'Tambah subkategori',[{n:'n',l:'Nama subkategori',v:r?.k,req:1},{n:'c',l:'Kategori',t:'select',o:CATS,v:r?catOf(r.k):CATS[0]},{n:'key',l:'Primary key',t:'select',o:['NIK','Kode Dugaan'],v:r?KEY[r.k]:'NIK'}],d=>{
+   if(r){if(d.n!==r.k){if(SRC[d.n])return 'Nama sudah dipakai';renameEverywhere('sub',r.k,d.n)}const oc=catOf(d.n);if(oc!==d.c){SUBC[oc].splice(SUBC[oc].indexOf(d.n),1);SUBC[d.c].push(d.n);ENT.forEach(e=>{if(e.sub===d.n)e.cat=d.c})}KEYO[d.n]=d.key;done('diubah',d.n)}
+   else{if(SRC[d.n])return 'Subkategori sudah ada';SUBC[d.c].push(d.n);SRC[d.n]=[];TOT[d.n]=0;KEYO[d.n]=d.key;ROLES.aml.scope.push(d.n);done('ditambahkan',d.n)}});
+  if(mTab==='src')mForm(r?'Ubah sumber':'Tambah sumber',[{n:'n',l:'Nama sumber',v:r?.k,req:1},{n:'s',l:'Subkategori',t:'select',o:allSubs,v:r?.sub||allSubs[0]}],d=>{
+   if(r){if(d.n!==r.k)renameEverywhere('src',r.k,d.n);if(d.s!==r.sub){SRC[r.sub].splice(SRC[r.sub].indexOf(d.n),1);SRC[d.s].push(d.n)}}else{if(SRC[d.s].includes(d.n))return 'Sumber sudah ada di subkategori ini';SRC[d.s].push(d.n)}
+   SOURCES=[...new Set(Object.values(SRC).flat())];done(r?'diubah':'ditambahkan',d.n)});
+  if(mTab==='dict'){const row=r?DICT.find(x=>x[0]===r.k):null;mForm(r?'Ubah field '+r.k:'Tambah field',[...(r?[]:[{n:'k',l:'Nama field (kode)',req:1}]),{n:'l',l:'Label',v:row?.[1],req:1},{n:'t',l:'Tipe atribut',t:'select',o:['Common','Subkategori-specific'],v:row?.[2]},{n:'f',l:'Format',t:'select',o:['Teks','Angka','Tanggal','16 digit','Master: Source'],v:row?.[3]},{n:'m',l:'Wajib di subkategori',t:'checks',o:allSubs,v:allSubs.filter(x=>MAND[x].includes(r?.k))}],d=>{
+   const k=r?r.k:d.k.toLowerCase().replace(/\W+/g,'_');if(!r&&DICT.some(x=>x[0]===k))return 'Field sudah ada';
+   if(r)Object.assign(row,[k,d.l,d.t,d.f]);else{DICT.push([k,d.l,d.t,d.f]);FIELDS[k]=d.l}
+   allSubs.forEach(x=>{const cur=[...MAND[x]].filter(y=>y!==k);MANDO[x]=d.m.includes(x)?[...cur,k]:cur});done(r?'diubah':'ditambahkan',k)})}
+  if(mTab==='user'){const u=r?USERS.find(x=>x.n===r.k):null;mForm(r?'Ubah user':'Tambah user',[{n:'n',l:'Nama user',v:u?.n,req:1},{n:'g',l:'Group',t:'select',o:UNITS.concat('Auditor'),v:u?.g},{n:'sc',l:'Scope data (subkategori)',t:'checks',o:allSubs,v:u?(u.sc==='Semua subkategori'?allSubs:u.sc.split(', ')):[],req:1},{n:'r',l:'Role',t:'select',o:ROLESL,v:u?.r}],d=>{
+   const rec={n:d.n,g:d.g,sc:d.sc.length===allSubs.length?'Semua subkategori':d.sc.join(', '),r:d.r};if(u)Object.assign(u,rec);else{if(USERS.some(x=>x.n===d.n))return 'User sudah ada';USERS.push(rec)}done(u?'diubah':'ditambahkan',d.n)})}
+ };
+ $('#madd').onclick=()=>edit(null);
+ document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>edit(rows[+b.dataset.ed]));
 }
 
 /* ---------- start ---------- */
