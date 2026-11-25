@@ -1123,7 +1123,7 @@ function vUsers(){
  <div class="tabs" id="ut2">${Object.entries(T).map(([k,l])=>`<button data-t="${k}" class="${uTab===k?'on':''}">${l}</button>`).join('')}</div></div><div class="card" id="ub2"></div>`;
  $('#ut2').onclick=e=>{const b=e.target.closest('button');if(b){uTab=b.dataset.t;vUsers()}};
  let head,rows;
- if(uTab==='user'){head=['NAMA','NIP','ROLE','GROUP','STATUS'];rows=USRS.map(u=>({k:u.n,c:[u.n,u.id,u.r,u.g]}))}
+ if(uTab==='user'){head=['NAMA','PERSONAL NUMBER','ROLE','GROUP','STATUS'];rows=USRS.map(u=>({k:u.n,c:[u.n,u.id,u.r,u.g]}))}
  if(uTab==='role'){head=['ROLE','AKSES FITUR','JUMLAH USER','STATUS'];rows=RLS.map(r=>({k:r.n,c:[r.n,r.f.length===FEATS.length?'Semua fitur':r.f.map(x=>FEATS.find(f=>f[0]===x)[1]).join(', '),String(USRS.filter(u=>u.r===r.n).length)]}))}
  if(uTab==='group'){head=['GROUP','AKSES DATA (SUBKATEGORI)','JUMLAH USER','STATUS'];rows=GRPS.map(g=>({k:g.n,c:[g.n,scTxt(g),String(USRS.filter(u=>u.g===g.n).length)]}))}
  $('#ub2').innerHTML=`<div class="bar2"><label class="search" style="flex:0 1 360px">${ic('search')}<input id="uq" placeholder="Cari ${T[uTab].toLowerCase()}…"></label><div style="flex:1"></div><button class="btn pri" id="uadd">${ic('in')}Tambah ${T[uTab]}</button></div>
@@ -1133,8 +1133,8 @@ function vUsers(){
  document.querySelectorAll('#ub2 [data-tg]').forEach(b=>b.onclick=()=>{const r=rows[+b.dataset.tg],off=ust(uTab,r.k)==='Active',run=()=>{MSTAT['u'+uTab+'|'+r.k]=off?'Inactive':'Active';done(off?'dinonaktifkan':'diaktifkan',r.k,[['Status',off?'Active':'Inactive',off?'Inactive':'Active']]);vUsers()};
   off?confirmDlg('Nonaktifkan '+r.k+'?',uTab==='user'?'User tidak bisa login sampai diaktifkan kembali.':uTab==='role'?'User dengan role ini kehilangan akses fiturnya.':'User di group ini kehilangan akses datanya.','Nonaktifkan',run,true):run()});
  const edit=r=>{
-  if(uTab==='user'){const u=r?USRS.find(x=>x.n===r.k):null;mForm(r?'Ubah user':'Tambah user',[{n:'n',l:'Nama',v:u?.n,req:1},{n:'id',l:'NIP',v:u?.id,req:1},{n:'r',l:'Role (akses fitur)',t:'select',o:RLS.map(x=>x.n),v:u?.r},{n:'g',l:'Group (akses data)',t:'select',o:GRPS.map(x=>x.n),v:u?.g}],d=>{
-   if(!u&&USRS.some(x=>x.id===d.id))return 'NIP sudah terdaftar';const chg=u?[['Role',u.r,d.r],['Group',u.g,d.g]].filter(c=>c[1]!==c[2]):null;if(u)Object.assign(u,d);else USRS.push(d);uTab='user';done(u?'diubah':'ditambahkan',d.n,chg)})}
+  if(uTab==='user'){const u=r?USRS.find(x=>x.n===r.k):null;mForm(r?'Ubah user':'Tambah user',[{n:'n',l:'Nama',v:u?.n,req:1},{n:'id',l:'Personal Number',v:u?.id,req:1},{n:'r',l:'Role (akses fitur)',t:'select',o:RLS.map(x=>x.n),v:u?.r},{n:'g',l:'Group (akses data)',t:'select',o:GRPS.map(x=>x.n),v:u?.g}],d=>{
+   if(!u&&USRS.some(x=>x.id===d.id))return 'Personal Number sudah terdaftar';const chg=u?[['Role',u.r,d.r],['Group',u.g,d.g]].filter(c=>c[1]!==c[2]):null;if(u)Object.assign(u,d);else USRS.push(d);uTab='user';done(u?'diubah':'ditambahkan',d.n,chg)})}
   if(uTab==='role'){const o=r?RLS.find(x=>x.n===r.k):null;mForm(r?'Ubah role':'Tambah role',[{n:'n',l:'Nama role',v:o?.n,req:1},{n:'f',l:'Akses fitur',t:'checks',o:FEATS.map(x=>x[1]),v:o?o.f.map(x=>FEATS.find(f=>f[0]===x)[1]):[],req:1}],d=>{
    const f=d.f.map(l=>FEATS.find(x=>x[1]===l)[0]);if(o){if(o.n!==d.n)USRS.forEach(u=>{if(u.r===o.n)u.r=d.n});o.n=d.n;o.f=f}else{if(RLS.some(x=>x.n===d.n))return 'Role sudah ada';RLS.push({n:d.n,f})}done(o?'diubah':'ditambahkan',d.n)})}
   if(uTab==='group'){const o=r?GRPS.find(x=>x.n===r.k):null;mForm(r?'Ubah group':'Tambah group',[{n:'n',l:'Nama group',v:o?.n,req:1},{n:'sc',l:'Akses data (subkategori)',t:'checks',o:allSubs,v:o?(o.sc==='all'?allSubs:o.sc):[],req:1}],d=>{
