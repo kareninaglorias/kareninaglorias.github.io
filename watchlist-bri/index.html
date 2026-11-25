@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light only">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BRI Watchlist Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm enterprise banking tool, clinical and trustworthy
+   IDEA: the AML analyst's operational console: spreadsheet grids + approval ledger
+   PICTURE: the working tool itself; the grid is the hero
+   COLOUR and TYPE: BRI Nusantara #0857C3, Cakrawala #307FE2, Mentari #71C5EB, white; Inter
+   LAYOUT: collapsible sidebar, fixed topbar, rounded cards on soft ground */
+:root,:root[data-theme]{color-scheme:light only;
+--bg:#f7fafe;--card:#fff;--ink:#0f1e33;--mute:#64748b;
+--line:#e3e9f1;--grid:#d3e1f3;--head:#eef5fd;
+--blue:#0857C3;--blue2:#307FE2;--mentari:#71C5EB;--sky:#e9f5fc;--orange:#f28c1b;
+--ok:#0d8a55;--okb:#e3f6ec;--warn:#b86e00;--warnb:#fff4e0;
+--err:#c62f2f;--errb:#fdecec;--null:#a9b4c3}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,system-ui,sans-serif;overflow:hidden;height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.app{display:flex;height:100vh}
+/* sidebar */
+.side{width:272px;flex:none;background:#fff;border-right:1px solid var(--line);color:var(--ink);display:flex;flex-direction:column;transition:width .2s,margin .2s;overflow:hidden}
+.side.col{width:72px}.side.hid{margin-left:-273px}
+.brand{display:flex;align-items:center;gap:10px;padding:18px 18px 14px;height:68px}
+.mark{width:36px;height:36px;border-radius:10px;background:#0857C3;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.brand b{display:block;color:#0857C3;font-size:16px;line-height:1.1}.brand small{font-size:10.5px;color:#307FE2;letter-spacing:.04em;white-space:nowrap}
+.navl{font-size:11px;color:var(--mute);padding:10px 22px 6px;white-space:nowrap}
+.nav{padding:0 12px;display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:#334155;text-decoration:none;white-space:nowrap;position:relative;cursor:pointer}
+.nav a:hover{background:#eef5fd;color:#0857C3}.nav a.on{background:#e9f5fc;color:#0857C3;font-weight:600;box-shadow:inset 3px 0 0 #0857C3}
+.nav .badge{margin-left:auto;font-style:normal}.nav span{overflow:hidden;text-overflow:ellipsis}
+em.badge{font-style:normal}
+.side.col .navl,.side.col .brand div,.side.col .nav span,.side.col .nav .badge,.side.col .sfoot p{display:none}
+.side.col .nav a{justify-content:center}.side.col .brand{justify-content:center;padding:18px 0}
+.side.col .nav a:hover::after{content:attr(data-t);position:fixed;left:78px;background:var(--ink);color:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;z-index:50}
+.sfoot{margin-top:auto;padding:12px;border-top:1px solid var(--line)}
+.sfoot button{width:100%;display:flex;align-items:center;gap:10px;justify-content:center;background:none;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--mute)}.sfoot button:hover{background:#eef5fd;color:#0857C3}
+.sfoot p{margin:0 0 8px;font-size:12px;color:var(--mute);padding:0 4px}
+/* main */
+.main{flex:1;display:flex;flex-direction:column;height:100vh}
+.top{height:64px;flex:none;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px}
+.ib{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;position:relative}
+.ib:hover{background:var(--head)}
+.crumb{font-size:12px;color:var(--mute)}.crumb b{display:block;font-size:16px;color:var(--ink)}
+.top .sp{flex:1}
+.dot{position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--orange);border:2px solid var(--card)}
+.user{display:flex;align-items:center;gap:10px;padding:4px 10px 4px 4px;border-radius:12px;border:1px solid var(--line);background:none;text-align:left}
+.av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#307FE2,#71C5EB);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600}
+.user small{display:block;color:var(--mute);font-size:11px}
+.content{flex:1;overflow:auto;padding:24px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:0}
+.sub{color:var(--mute);margin:0 0 18px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.g{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.kpi{cursor:pointer;transition:border-color .15s}.kpi:hover{border-color:var(--blue2)}
+.kpi small{color:var(--mute);font-size:12.5px}.kpi b{display:block;font-size:26px;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.kpi em{font-style:normal;font-size:12px}
+.row2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+@media(max-width:1000px){.row2{grid-template-columns:1fr}}
+.ch{display:flex;align-items:center;gap:10px;margin-bottom:14px}.ch .sp{flex:1}
+.ch p{margin:2px 0 0;font-size:12px;color:var(--mute)}
+.fig{position:relative;height:250px}.fig svg{position:absolute;inset:0;width:100%;height:100%}
+.leg{display:flex;gap:14px;font-size:12px;color:var(--mute)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.bar{cursor:pointer;padding:6px 0}.bar:hover .bl{color:var(--blue2)}
+.bl{display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-bottom:5px}.bl b{font-variant-numeric:tabular-nums}
+.bt{height:8px;border-radius:9px;background:var(--head);overflow:hidden}.bt i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#0857C3,#307FE2)}
+/* buttons, chips */
+.btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--head)}.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}.btn.pri:hover{background:#0648a3}
+.btn.dan{color:var(--err);border-color:var(--err)}.btn.sm{height:30px;padding:0 10px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.ib:focus-visible,input:focus-visible,select:focus-visible,.chip:focus-visible{outline:2px solid var(--blue2);outline-offset:2px}
+.tabs{display:inline-flex;background:var(--head);padding:4px;border-radius:11px;gap:2px}
+.tabs button{border:0;background:none;padding:7px 14px;border-radius:8px;color:var(--mute);font-weight:500}
+.tabs button.on{background:var(--card);color:var(--blue2);box-shadow:0 1px 3px #0002}
+.bar2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.search{flex:1 1 280px;display:flex;align-items:center;gap:8px;height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--card)}
+.search input{border:0;outline:0;background:none;flex:1;font-size:14px}
+.chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:13px;cursor:pointer;white-space:nowrap}
+.chip.act{border-color:var(--blue2);background:var(--sky);color:var(--blue2);font-weight:500}
+.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px #0003;padding:6px;cursor:default;font-weight:400;color:var(--ink)}
+.menu label{display:flex;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;cursor:pointer}.menu label:hover{background:var(--head)}
+.menu .mf{display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:4px;padding:8px 6px 2px}
+.menu input[type=checkbox]{accent-color:var(--blue);width:16px;height:16px}
+.date{height:34px;border:1px solid var(--line);border-radius:99px;padding:0 12px;background:var(--card);font-size:13px}
+.link{background:none;border:0;color:var(--blue2);font-weight:500;padding:4px}
+/* grid table */
+.tw{overflow:auto;border:1px solid var(--grid);border-radius:10px;background:var(--card);max-height:calc(100vh - 330px)}
+table.x{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+.x th,.x td{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:8px 12px;text-align:left;white-space:nowrap}
+.x th{position:sticky;top:0;background:var(--head);font-size:11.5px;font-weight:600;color:var(--mute);letter-spacing:.02em;z-index:2;cursor:pointer;user-select:none}
+.x th:hover{color:var(--ink)}.x th .ar{opacity:.5;margin-left:4px}
+.x tr td:first-child,.x tr th:first-child{position:sticky;left:0;z-index:1;background:inherit}
+.x tr th:first-child{z-index:3;background:var(--head)}
+.x tbody tr{background:var(--card)}.x tbody tr:hover{background:var(--sky)}
+.x tbody tr.hl{background:var(--warnb)}
+.x td.n{color:var(--null);font-style:italic}
+.x td.num{text-align:right;font-variant-numeric:tabular-nums}
+.x .rn{color:var(--mute);text-align:center;background:var(--head)!important;font-size:11px;width:44px}
+.x td[contenteditable]{outline:0}.x td[contenteditable]:focus{box-shadow:inset 0 0 0 2px var(--blue2)}
+.x td.ce{background:var(--errb)}.x td.cw{background:var(--warnb)}
+.badge{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.b-ok{background:var(--okb);color:var(--ok)}.b-w{background:var(--warnb);color:var(--warn)}.b-e{background:var(--errb);color:var(--err)}
+.b-m{background:var(--head);color:var(--mute)}.b-b{background:var(--sky);color:var(--blue2)}
+.pg{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;padding-top:12px;color:var(--mute);font-size:13px}
+.pg .pb{display:flex;gap:4px;align-items:center}.pg button{min-width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card)}
+.pg button.on{background:var(--blue);color:#fff;border-color:var(--blue)}.pg select{height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card)}
+/* drawer, modal */
+.scrim{position:fixed;inset:0;background:#0a172a55;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(540px,100vw);background:var(--card);z-index:61;transform:translateX(100%);transition:transform .25s;display:flex;flex-direction:column;box-shadow:-10px 0 40px #0003}
+.drawer.on{transform:none}
+.dh{padding:18px 22px;border-bottom:1px solid var(--line)}.db{flex:1;overflow:auto;padding:6px 22px 22px}.df{padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.sec{padding:16px 0;border-bottom:1px solid var(--line)}.sec:last-child{border:0}
+.sec h3{font-size:13px;margin:0 0 10px;display:flex;align-items:center;gap:8px;color:var(--blue2)}
+.kv{display:grid;grid-template-columns:150px minmax(0,1fr);gap:7px 12px;font-size:13px}.kv dt{color:var(--mute)}.kv dd{margin:0;font-weight:500}
+.var{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.var .vh{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-bottom:6px}
+.var ul{margin:0;padding:0;list-style:none}.var li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:13px;border-top:1px dashed var(--line)}
+.var li:first-child{border:0}.var li small{color:var(--mute)}
+.tl{position:relative;padding-left:20px}.tl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl div{position:relative;padding:0 0 14px;font-size:13px}.tl div::before{content:"";position:absolute;left:-19px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--blue2);border:2px solid var(--card)}
+.tl small{display:block;color:var(--mute)}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-48%);width:min(560px,94vw);max-height:88vh;overflow:auto;background:var(--card);border-radius:16px;z-index:70;padding:22px;opacity:0;pointer-events:none;transition:.2s;box-shadow:0 20px 60px #0004}
+.modal.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+.mscrim{z-index:69}
+.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;font-size:13px}
+.fld label{font-weight:500}.fld label i{color:var(--err);font-style:normal}
+.fld input,.fld select,.fld textarea{height:40px;border:1px solid var(--line);border-radius:9px;padding:0 12px;background:var(--card);font-size:14px}
+.fld textarea{height:80px;padding:10px 12px;resize:vertical}
+.fld.bad input,.fld.bad select,.fld.bad textarea{border-color:var(--err)}.fld .em{color:var(--err);font-size:12px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 16px}
+.mact{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+pre.code{background:var(--head);border-radius:10px;padding:12px;max-height:300px;overflow:auto;font-size:12px}
+.alert{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:13px;margin-bottom:12px}
+.alert.w{background:var(--warnb);color:var(--warn)}.alert.e{background:var(--errb);color:var(--err)}.alert.i{background:var(--sky);color:var(--blue2)}
+.alert b{display:block}
+.toasts{position:fixed;bottom:20px;right:20px;z-index:90;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px #0004;animation:tin .25s}
+@keyframes tin{from{transform:translateY(10px);opacity:0}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.steps{display:flex;gap:0;margin:8px 0 4px;overflow-x:auto}
+.st{flex:1;min-width:100px;text-align:center;font-size:11.5px;color:var(--mute);position:relative;padding-top:28px}
+.st::before{content:attr(data-n);position:absolute;top:0;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:var(--head);display:grid;place-items:center;font-weight:600;z-index:1}
+.st::after{content:"";position:absolute;top:10px;left:-50%;right:50%;height:2px;background:var(--line)}.st:first-child::after{display:none}
+.st.done{color:var(--ok)}.st.done::before{background:var(--ok);color:#fff}.st.done::after{background:var(--ok)}
+.st.cur{color:var(--blue2);font-weight:600}.st.cur::before{background:var(--blue2);color:#fff}
+.drop{border:2px dashed var(--grid);border-radius:14px;padding:30px;text-align:center;color:var(--mute);cursor:pointer}
+.drop:hover,.drop.ov{border-color:var(--blue2);background:var(--sky)}
+.empty{text-align:center;padding:40px;color:var(--mute)}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}@media(max-width:1100px){.split{grid-template-columns:1fr}}
+.list .li{display:flex;gap:12px;align-items:center;padding:12px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+.list .li:hover{background:var(--head)}.list .li.on{border-color:var(--blue2);background:var(--sky)}
+.note{font-size:11.5px;color:var(--mute);margin-top:10px}
+.lock{display:inline-flex;gap:5px;align-items:center;font-size:12px;color:var(--mute)}
+.dd{position:relative}
+@media(max-width:760px){.side{position:fixed;z-index:55;height:100vh}.content{padding:14px}.crumb span{display:none}.user div{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side" id="side">
+ <div class="brand"><div class="mark">BRI</div><div><b>BRI</b><small>WATCHLIST SYSTEM</small></div></div>
+ <div class="navl">MENU UTAMA</div>
+ <nav class="nav" id="nav"></nav>
+ <div class="sfoot"><p id="scope"></p><button id="colBtn" title="Perkecil sidebar"><svg class="i"><use href="#i-chl"/></svg><span>Perkecil</span></button></div>
+</aside>
+<div class="main">
+ <header class="top">
+  <button class="ib" id="hideBtn" title="Tampilkan/sembunyikan sidebar" aria-label="Toggle sidebar"><svg class="i"><use href="#i-menu"/></svg></button>
+  <div class="crumb"><span id="crumbA">WATCHLIST</span><b id="crumbB">Dashboard</b></div>
+  <div class="sp"></div>
+  <div class="dd"><button class="ib" id="notifBtn" aria-label="Notifikasi"><svg class="i"><use href="#i-bell"/></svg><i class="dot" id="ndot"></i></button><div class="menu" id="notifMenu" hidden style="left:auto;right:0;width:320px"></div></div>
+  <div class="dd"><button class="user" id="userBtn"><span class="av" id="av">AA</span><div><b id="uname" style="font-size:13px">AML Administrator</b><small id="urole">AML Admin</small></div><svg class="i" style="width:14px"><use href="#i-down"/></svg></button><div class="menu" id="userMenu" hidden style="left:auto;right:0;width:260px"></div></div>
+ </header>
+ <main class="content" id="view"></main>
+</div>
+</div>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"></aside>
+<div class="scrim mscrim" id="mscrim"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+<div class="toasts" id="toasts"></div>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="i-dash" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+<symbol id="i-in" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-ok" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+<symbol id="i-hist" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol>
+<symbol id="i-set" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.8 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.8-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3.1 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3.1V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.8 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.8H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1.1z"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+<symbol id="i-chl" viewBox="0 0 24 24"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></symbol>
+<symbol id="i-chr" viewBox="0 0 24 24"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h0"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 16 0v1"/></symbol>
+</defs></svg>
+
+<script>
+{
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic=n=>`<svg class="i"><use href="#i-${n}"/></svg>`;
+const fmt=n=>n.toLocaleString('id-ID');
+const nul=v=>v==null||v===''?'<td class="n">NULL</td>':`<td>${esc(v)}</td>`;
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;const pick=a=>a[Math.floor(rnd()*a.length)];
+const today=new Date(2026,10,25);const dstr=d=>d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+const daysAgo=n=>{const d=new Date(today);d.setDate(d.getDate()-n);return d};
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toasts').append(t);setTimeout(()=>t.remove(),3200)}
+const stBadge=s=>`<span class="badge ${s==='Active'?'b-ok':s==='Delisted'?'b-e':'b-m'}">${esc(s)}</span>`;
+const vBadge=s=>`<span class="badge ${s==='Valid'?'b-ok':s==='Warning'?'b-w':'b-e'}">${esc(s)}</span>`;
+
+/* ---------- master data ---------- */
+const CATS=['DTTOT','DPPSPM','Scammer','Negative List'];
+const KEY={DTTOT:'Kode Dugaan',DPPSPM:'Kode Dugaan',Scammer:'NIK','Negative List':'NIK'};
+const SUBC={DTTOT:['Terorisme - Individu','Terorisme - Organisasi'],DPPSPM:['Pendanaan Proliferasi'],Scammer:['Penipuan Online','Social Engineering','Phishing'],'Negative List':['Fraud Internal','Kredit Macet','Eks Rejection List']};
+const SOURCES=['PPATK','Densus 88','OJK','Unit Fraud BRI','Kepolisian','Unit Kerja Wilayah'];
+const UNITS=['Unit Kerja A','Unit Kerja B','Unit Kerja C','AML Group'];
+const NAMES=['Andi Saputra','Budi Santoso','Citra Dewi','Darma Wijaya','Eko Prasetyo','Fitri Handayani','Gilang Ramadhan','Hendra Kusuma','Indah Permata','Joko Susilo','Kartika Sari','Lukman Hakim','Maya Anggraini','Nanda Pratama','Oki Firmansyah','Putri Lestari','Rizky Maulana','Sari Wulandari','Taufik Hidayat','Umar Faruq','Vina Melati','Wahyu Nugroho','Yusuf Abdullah','Zahra Amalia'];
+const CITIES=['Jakarta','Bandung','Surabaya','Medan','Depok','Makassar','Semarang','Bekasi'];
+const MAND={DTTOT:['nama','kode','tempat_lahir','tgl_lahir','sumber','no_surat'],DPPSPM:['nama','kode','tgl_lahir','sumber','no_surat'],Scammer:['nama','nik','sumber','no_surat','tgl_lapor'],'Negative List':['nama','nik','sumber','no_surat']};
+const DICT=[['nama','Nama','Common','Teks'],['alias','Alias Nama','Common','Teks'],['nik','NIK','Category-specific','16 digit'],['kode','Kode Dugaan','Category-specific','Teks'],['cif','CIF','Common','Teks'],['rek','No. Rekening','Common','Angka'],['tempat_lahir','Tempat Lahir','Common','Teks'],['tgl_lahir','Tanggal Lahir','Common','Tanggal'],['alamat','Alamat','Common','Teks'],['kwn','Kewarganegaraan','Common','Teks'],['sumber','Sumber Data','Common','Master: Source'],['no_surat','No. Surat / Referensi','Common','Teks'],['tgl_lapor','Tanggal Dilaporkan','Common','Tanggal']];
+
+/* ---------- sample data ---------- */
+let ENT=[];
+for(let i=1;i<=64;i++){
+ const cat=CATS[i%4===0?3:i%4===1?2:i%4===2?0:(rnd()<.5?1:3)];
+ const n=pick(NAMES),nVar=rnd()<.3,aVar=rnd()<.35,isKD=KEY[cat]==='Kode Dugaan';
+ const status=rnd()<.8?'Active':rnd()<.5?'Inactive':'Delisted';
+ const src=pick(SOURCES),src2=pick(SOURCES.filter(s=>s!==src));
+ const nik='3'+String(Math.floor(rnd()*1e15)).padStart(15,'0');
+ const e={id:'WL-'+String(i).padStart(5,'0'),cat,sub:pick(SUBC[cat]),status,unit:pick(UNITS),
+  key:isKD?(cat==='DTTOT'?'DT-':'DP-')+String(100+i).padStart(4,'0'):nik,
+  nik:isKD?(rnd()<.5?null:nik):nik,cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):null,rek:!isKD&&rnd()<.6?'0'+Math.floor(rnd()*1e14):null,
+  kwn:isKD?pick(['Indonesia','Malaysia','Filipina',null]):'Indonesia',created:daysAgo(Math.floor(rnd()*300)+20),updated:daysAgo(Math.floor(rnd()*20)),
+  vars:[]};
+ const tl=pick(CITIES),dob=new Date(1965+Math.floor(rnd()*35),Math.floor(rnd()*12),1+Math.floor(rnd()*27));
+ e.vars.push({nama:n,alias:isKD&&rnd()<.6?n.split(' ')[0]+' alias '+pick(['Abu','Bang','Pak']):null,tempat:tl,tgl:dob,alamat:'Jl. '+pick(['Merdeka','Sudirman','Diponegoro','Gatot Subroto','Ahmad Yani'])+' No.'+(1+Math.floor(rnd()*90))+', '+tl,src,ref:'B-'+(100+i)+'/PPATK/2026',tglLapor:daysAgo(Math.floor(rnd()*200)+25)});
+ if(nVar||aVar)e.vars.push({...e.vars[0],nama:nVar?n.split(' ')[0]+' '+n.split(' ')[1][0]+'.':e.vars[0].nama,alamat:aVar?'Jl. '+pick(['Kenanga','Melati','Anggrek'])+' No.'+(1+Math.floor(rnd()*50))+', '+pick(CITIES):e.vars[0].alamat,src:src2,ref:'ND-'+(200+i)+'/UKA/2026'});
+ e.name=e.vars[0].nama;
+ e.hist=[{t:e.created,a:'Created',u:'Maker · '+e.unit,r:'Input awal melalui '+(rnd()<.5?'Bulk Upload':'Single Entry')},{t:new Date(e.created.getTime()+864e5),a:'Approved',u:'AML Review · Rina A.',r:'Lolos validasi'}];
+ if(e.vars.length>1)e.hist.push({t:new Date(Math.min(e.created.getTime()+40*864e5,daysAgo(3).getTime())),a:'Variation added',u:'Maker · '+e.unit,r:'Variasi '+(nVar?'nama':'alamat')+' dari '+src2});
+ if(status==='Delisted')e.hist.push({t:e.updated,a:'Delisted',u:'AML Admin',r:'Surat pencabutan dari sumber'});
+ ENT.push(e);
+}
+let SUBS=[
+ {id:'SUB-2611-014',title:'Penambahan Scammer November',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(1),stage:1,status:'Menunggu Checker',n:48,err:0,warn:3,letters:['ND-881/UKA/2026','ND-884/UKA/2026']},
+ {id:'SUB-2611-013',title:'Update DTTOT PPATK',unit:'AML Group',maker:'Rina A.',created:daysAgo(2),stage:3,status:'AML Review',n:126,err:0,warn:7,letters:['B-2210/PPATK/2026']},
+ {id:'SUB-2611-012',title:'Negative List Kredit Macet',unit:'Unit Kerja B',maker:'Doni P.',created:daysAgo(3),stage:2,status:'Menunggu Signer',n:22,err:0,warn:0,letters:['ND-512/UKB/2026']},
+ {id:'SUB-2611-011',title:'Delisting Rejection List',unit:'Unit Kerja C',maker:'Wulan K.',created:daysAgo(4),stage:0,status:'Dikembalikan',n:6,err:2,warn:1,letters:['ND-301/UKC/2026'],note:'Referensi delisting belum dilampirkan untuk 2 record.'},
+ {id:'SUB-2611-010',title:'Scammer Phishing Q4',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(6),stage:4,status:'Approved',n:73,err:0,warn:0,letters:['ND-842/UKA/2026']},
+ {id:'SUB-2611-009',title:'Draft Fraud Internal',unit:'Unit Kerja B',maker:'Doni P.',created:daysAgo(7),stage:0,status:'Draft',n:15,err:4,warn:2,letters:['ND-498/UKB/2026']},
+];
+const STAGES=['Maker','Checker','Signer','AML Review','Ready'];
+let AUDIT=[];
+ENT.forEach(e=>e.hist.forEach(h=>AUDIT.push({t:h.t,user:h.u,act:h.a,obj:e.id+' · '+e.cat,r:h.r})));
+SUBS.forEach(s=>AUDIT.push({t:s.created,user:'Maker · '+s.maker,act:'Submission created',obj:s.id,r:s.title}));
+AUDIT.sort((a,b)=>b.t-a.t);
+const log=(act,obj,r)=>AUDIT.unshift({t:new Date(),user:ROLE.name,act,obj,r});
+
+/* ---------- roles ---------- */
+const ROLES={aml:{name:'AML Administrator',short:'AML Admin',ini:'AA',scope:CATS,lbl:'AML WORKSPACE · akses penuh'},
+ maker:{name:'Siti Maharani',short:'Maker · Unit Kerja A',ini:'SM',scope:['Scammer','Negative List'],lbl:'Scope: Scammer, Negative List'},
+ checker:{name:'Bagus Pranoto',short:'Checker/Signer · Unit Kerja A',ini:'BP',scope:['Scammer','Negative List'],lbl:'Scope: Scammer, Negative List'}};
+let roleKey='aml',ROLE=ROLES.aml;
+
+/* ---------- nav & sidebar ---------- */
+const NAV=[['dash','dash','Dashboard'],['wdm','db','Watchlist Data Management'],['input','in','Input Data'],['appr','ok','Submission & Approval'],['upload','up','Upload Watchlist'],['audit','hist','Audit Trail'],['master','set','Master Data & Administration']];
+let page='dash';
+function renderNav(){
+ const pend=SUBS.filter(s=>pendingFor(s)).length;
+ $('#nav').innerHTML=NAV.map(([k,i,t])=>`<a data-p="${k}" data-t="${t}" class="${page===k?'on':''}" tabindex="0">${ic(i)}<span>${t}</span>${k==='appr'&&pend?`<em class="badge b-w">${pend}</em>`:''}</a>`).join('');
+ $('#scope').textContent=ROLE.lbl;
+}
+$('#nav').onclick=e=>{const a=e.target.closest('a');if(a)go(a.dataset.p)};
+$('#nav').onkeydown=e=>{if(e.key==='Enter'){const a=e.target.closest('a');if(a)go(a.dataset.p)}};
+let sideMode='exp';try{sideMode=localStorage.getItem('wl-side')||'exp'}catch(e){}
+function applySide(){const s=$('#side');s.classList.toggle('col',sideMode==='col');s.classList.toggle('hid',sideMode==='hid');
+ $('#colBtn').innerHTML=sideMode==='col'?ic('chr'):ic('chl')+'<span>Perkecil</span>';try{localStorage.setItem('wl-side',sideMode)}catch(e){}}
+$('#colBtn').onclick=()=>{sideMode=sideMode==='col'?'exp':'col';applySide()};
+$('#hideBtn').onclick=()=>{sideMode=sideMode==='hid'?'exp':'hid';applySide()};
+if(innerWidth<760)sideMode='hid';applySide();
+
+/* ---------- top menus ---------- */
+function closeMenus(except){document.querySelectorAll('.menu').forEach(m=>{if(m!==except)m.hidden=true})}
+document.addEventListener('click',e=>{if(!e.target.closest('.dd,.chip'))closeMenus()});
+$('#userBtn').onclick=e=>{e.stopPropagation();const m=$('#userMenu');closeMenus(m);
+ m.innerHTML=`<div style="padding:8px 10px;font-size:12px;color:var(--mute)">Ganti role (simulasi hak akses)</div>`+Object.entries(ROLES).map(([k,r])=>`<label><input type="radio" name="rl" value="${k}" ${k===roleKey?'checked':''}> <span><b style="font-weight:500">${r.short}</b><br><small style="color:var(--mute)">${r.name}</small></span></label>`).join('');
+ m.hidden=!m.hidden;m.onchange=ev=>{roleKey=ev.target.value;ROLE=ROLES[roleKey];$('#uname').textContent=ROLE.name;$('#urole').textContent=ROLE.short;$('#av').textContent=ROLE.ini;m.hidden=true;toast('Role diganti ke '+ROLE.short);render()}};
+$('#notifBtn').onclick=e=>{e.stopPropagation();const m=$('#notifMenu');closeMenus(m);
+ const items=[['SUB-2611-014 menunggu pemeriksaan Checker','appr','1 jam lalu'],['7 warning mismatch Big Data di SUB-2611-013','appr','3 jam lalu'],['SUB-2611-011 dikembalikan ke Maker','appr','Kemarin'],['Patching HUE bulan November jatuh tempo 10 Des','upload','Kemarin']];
+ m.innerHTML=`<div style="padding:8px 10px;font-weight:600">Notifikasi</div>`+items.map(([t,p,w])=>`<label data-go="${p}"><span>${esc(t)}<br><small style="color:var(--mute)">${w}</small></span></label>`).join('');
+ m.hidden=!m.hidden;$('#ndot').style.display='none';m.onclick=ev=>{const l=ev.target.closest('[data-go]');if(l){m.hidden=true;go(l.dataset.go)}}};
+
+/* ---------- drawer & modal ---------- */
+function openDrawer(html){$('#drawer').innerHTML=html;$('#drawer').classList.add('on');$('#scrim').classList.add('on')}
+function closeDrawer(){$('#drawer').classList.remove('on');$('#scrim').classList.remove('on')}
+$('#scrim').onclick=closeDrawer;
+function openModal(html){$('#modal').innerHTML=html;$('#modal').classList.add('on');$('#mscrim').classList.add('on');setTimeout(()=>{const f=$('#modal').querySelector('input,textarea,select,button');f&&f.focus()},50)}
+function closeModal(){$('#modal').classList.remove('on');$('#mscrim').classList.remove('on')}
+$('#mscrim').onclick=closeModal;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#modal').classList.contains('on'))closeModal();else closeDrawer();closeMenus()}});
+function showCsv(title,csv){openModal(`<h2>${esc(title)}</h2><p class="sub" style="margin-top:4px">Pratinjau isi file. Di aplikasi final tombol ini mengunduh file; di prototipe, salin isinya.</p><pre class="code">${esc(csv)}</pre><div class="mact"><button class="btn" data-x>Tutup</button><button class="btn pri" id="cp">${ic('dl')}Salin CSV</button></div>`);
+ $('#modal').querySelector('[data-x]').onclick=closeModal;$('#cp').onclick=()=>{navigator.clipboard.writeText(csv).then(()=>toast('CSV disalin'),()=>toast('Tidak bisa menyalin di browser ini'))}}
+
+/* ---------- router ---------- */
+const TITLES={dash:'Dashboard',wdm:'Watchlist Data Management',input:'Input Data',appr:'Submission & Approval',upload:'Upload Watchlist',audit:'Audit Trail',master:'Master Data & Administration'};
+function go(p){page=p;closeDrawer();if(innerWidth<760){sideMode='hid';applySide()}try{history.replaceState(null,'','#'+p)}catch(e){}render();$('#view').scrollTop=0}
+function render(){renderNav();$('#crumbB').textContent=TITLES[page];({dash:vDash,wdm:vWdm,input:vInput,appr:vAppr,upload:vUpload,audit:vAudit,master:vMaster})[page]()}
+const inScope=e=>ROLE.scope.includes(e.cat);
+
+/* ================= DASHBOARD ================= */
+const TOT={DTTOT:31240,DPPSPM:12870,Scammer:29247,'Negative List':67611};
+let period='12';
+function vDash(){
+ const scopeTot=ROLE.scope.reduce((a,c)=>a+TOT[c],0),pend=SUBS.filter(s=>!['Approved','Draft','Dikembalikan'].includes(s.status)).length;
+ const act=Math.round(scopeTot*.886),del=Math.round(scopeTot*.0493),ina=scopeTot-act-del;
+ $('#view').innerHTML=`<h1>Ringkasan Watchlist</h1><p class="sub">Per ${dstr(today)} · ${roleKey==='aml'?'seluruh kategori':'sesuai scope unit Anda'} · data contoh prototipe</p>
+ <div class="g kpis">
+  ${[['Total data Watchlist',fmt(scopeTot),'Record, bukan individu unik','b-b','wdm',{}],['Active',fmt(act),(act/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','ok','wdm',{status:'Active'}],['Inactive',fmt(ina),'Tidak diekspor ke patching','mute','wdm',{status:'Inactive'}],['Delisted',fmt(del),'+38 bulan ini','err','wdm',{status:'Delisted'}],['Pending approval',pend,'Menunggu tindakan','warn','appr',{}],['Validation errors',SUBS.reduce((a,s)=>a+s.err,0),'Di draft & submission','err','appr',{}]].map(([l,v,s,c,p,f],i)=>`<div class="card kpi" data-i="${i}" tabindex="0"><small>${l}</small><b>${v}</b><em style="color:var(--${c==='b-b'?'blue2':c})">${s}</em></div>`).join('')}
+ </div>
+ <div class="g row2" style="margin-top:16px">
+  <div class="card"><div class="ch"><div><h2>Tren penambahan dan penghapusan</h2><p>Jumlah record per bulan</p></div><div class="sp"></div>
+   <div class="tabs" id="per"><button data-p="6" class="${period==='6'?'on':''}">6 bln</button><button data-p="12" class="${period==='12'?'on':''}">12 bln</button></div></div>
+   <div class="leg"><span><i style="background:var(--blue)"></i>Penambahan</span><span><i style="background:var(--mentari)"></i>Penghapusan / delisting</span></div>
+   <div class="fig" id="trend"><svg></svg></div></div>
+  <div class="card"><div class="ch"><div><h2>Distribusi kategori</h2><p>Klik untuk membuka data kategori</p></div></div>
+   ${ROLE.scope.map(c=>`<div class="bar" data-c="${c}" tabindex="0"><div class="bl"><span>${c} <small style="color:var(--mute)">· key ${KEY[c]}</small></span><b>${fmt(TOT[c])}</b></div><div class="bt"><i style="width:${TOT[c]/67611*100}%"></i></div></div>`).join('')}
+   <p class="note">Rejection List (DTTOT, DPPSPM, Scammer) ${fmt(73357)} · Negative List ${fmt(67611)}</p></div>
+ </div>
+ <div class="g row2" style="margin-top:16px">
+  <div class="card"><div class="ch"><h2>Aktivitas terbaru</h2><div class="sp"></div><button class="link" id="toAudit">Lihat audit trail →</button></div>
+   <div class="tl">${AUDIT.slice(0,5).map(a=>`<div><b style="font-weight:500">${esc(a.act)}</b> · ${esc(a.obj)}<small>${esc(a.user)} · ${dstr(a.t)}</small></div>`).join('')}</div></div>
+  <div class="card"><div class="ch"><h2>Monitoring proses</h2></div>
+   <div class="g" style="grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+    ${[['Pending',pend,'warn'],['Dikembalikan',SUBS.filter(s=>s.status==='Dikembalikan').length,'err'],['Draft',SUBS.filter(s=>s.status==='Draft').length,'mute']].map(([l,v,c])=>`<div style="background:var(--${c==='mute'?'head':c+'b'});border-radius:10px;padding:10px"><small style="color:var(--${c==='mute'?'mute':c});font-size:12px">${l}</small><b style="display:block;font-size:22px;color:var(--${c==='mute'?'ink':c})">${v}</b></div>`).join('')}
+   </div>
+   <h2 style="font-size:13px;margin-bottom:8px">Kontribusi unit kerja (bulan ini)</h2>
+   ${[['Unit Kerja A',32],['Unit Kerja B',26],['Unit Kerja C',18],['AML Group',24]].map(([u,p])=>`<div style="margin-bottom:8px"><div class="bl"><span>${u}</span><b>${p}%</b></div><div class="bt"><i style="width:${p}%;background:var(--mentari)"></i></div></div>`).join('')}
+   <p class="note">Lead time rata-rata pengajuan → CSV siap patching: <b>0,8 hari</b> (target &lt; 1 hari)</p></div>
+ </div>`;
+ const KF=[{},{status:'Active'},{status:'Inactive'},{status:'Delisted'}];
+ document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{const i=+k.dataset.i;if(i>=4)return go('appr');resetF();if(KF[i].status)F.status=new Set([KF[i].status]);go('wdm')});
+ document.querySelectorAll('.bar[data-c]').forEach(b=>b.onclick=()=>{resetF();F.cat=new Set([b.dataset.c]);go('wdm')});
+ $('#toAudit').onclick=()=>go('audit');
+ $('#per').onclick=e=>{const b=e.target.closest('button');if(b){period=b.dataset.p;vDash()}};
+ drawTrend();
+}
+let trendRO;
+function drawTrend(){
+ const box=$('#trend');if(!box)return;const s=box.querySelector('svg');
+ const M=['Des','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov'];
+ const A=[820,940,760,1120,980,1340,1210,1480,1390,1620,1540,1710],D=[120,90,140,110,160,130,180,150,170,140,210,190];
+ const k=+period,m=M.slice(-k),a=A.slice(-k),d=D.slice(-k);
+ const draw=()=>{const W=s.clientWidth,H=s.clientHeight;if(!W)return;const L=44,B=26,T=10,max=2000,iw=W-L-8,ih=H-B-T,bw=iw/k;
+  let g='';for(let v=0;v<=max;v+=500){const y=T+ih-v/max*ih;g+=`<line x1="${L}" x2="${W-8}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${L-8}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--mute)">${fmt(v)}</text>`}
+  m.forEach((mm,i)=>{const x=L+i*bw,w=Math.min(18,bw*.3),ha=a[i]/max*ih,hd=d[i]/max*ih;
+   g+=`<rect x="${x+bw/2-w-1}" y="${T+ih-ha}" width="${w}" height="${ha}" rx="3" fill="var(--blue)"><title>${mm}: +${fmt(a[i])}</title></rect><rect x="${x+bw/2+1}" y="${T+ih-hd}" width="${w}" height="${hd}" rx="3" fill="var(--mentari)"><title>${mm}: −${fmt(d[i])}</title></rect>`;
+   if(W>520||i%2===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--mute)">${mm}</text>`});
+  s.innerHTML=g};
+ if(trendRO)trendRO.disconnect();trendRO=new ResizeObserver(draw);trendRO.observe(s);draw();
+}
+
+/* ================= WATCHLIST DATA MANAGEMENT ================= */
+let F,wv='item',q='',asof='',sort={k:'id',d:1},pg=1,per=10,hlId=null;
+function resetF(){F={cat:new Set(),sub:new Set(),src:new Set(),status:new Set(),unit:new Set()};q='';asof='';pg=1;hlId=null}
+resetF();
+const FDEF=[['cat','Kategori',()=>ROLE.scope],['sub','Subkategori',()=>[...new Set(ROLE.scope.flatMap(c=>SUBC[c]))]],['src','Sumber Data',()=>SOURCES],['status','Status',()=>['Active','Inactive','Delisted']],['unit','PIC Group',()=>UNITS]];
+function filtered(){
+ const qq=q.toLowerCase();
+ return ENT.filter(e=>inScope(e)&&(!F.cat.size||F.cat.has(e.cat))&&(!F.sub.size||F.sub.has(e.sub))&&(!F.status.size||F.status.has(e.status))&&(!F.unit.size||F.unit.has(e.unit))
+  &&(!F.src.size||e.vars.some(v=>F.src.has(v.src)))&&(!asof||e.created<=new Date(asof))
+  &&(!qq||[e.id,e.key,e.nik,e.cif,...e.vars.flatMap(v=>[v.nama,v.alias])].some(x=>x&&String(x).toLowerCase().includes(qq))));
+}
+function chipBar(){
+ return FDEF.map(([k,l])=>{const n=F[k].size;return `<span class="chip ${n?'act':''}" data-f="${k}" tabindex="0">${l} · ${n?(n===1?esc([...F[k]][0]):n+' dipilih'):'All'} ${ic('down')}</span>`}).join('')+
+ `<input type="date" class="date" id="asof" value="${asof}" title="As-of date" aria-label="As-of date">`+
+ (FDEF.some(([k])=>F[k].size)||asof||q?`<button class="link" id="rst">Reset filter</button>`:'');
+}
+function bindChips(rerender){
+ document.querySelectorAll('.chip[data-f]').forEach(ch=>ch.onclick=e=>{
+  if(e.target.closest('.menu'))return;e.stopPropagation();const k=ch.dataset.f,opts=FDEF.find(d=>d[0]===k)[2]();
+  let m=ch.querySelector('.menu');if(m){m.remove();return}closeMenus();document.querySelectorAll('.chip .menu').forEach(x=>x.remove());
+  m=document.createElement('div');m.className='menu';const tmp=new Set(F[k]);
+  m.innerHTML=opts.map(o=>`<label><input type="checkbox" value="${esc(o)}" ${tmp.has(o)?'checked':''}> ${esc(o)}</label>`).join('')+`<div class="mf"><button class="link" data-c>Hapus</button><button class="btn pri sm" data-a>Terapkan</button></div>`;
+  ch.append(m);
+  m.onchange=ev=>{ev.target.checked?tmp.add(ev.target.value):tmp.delete(ev.target.value)};
+  m.querySelector('[data-c]').onclick=()=>{F[k].clear();pg=1;rerender()};
+  m.querySelector('[data-a]').onclick=()=>{F[k]=tmp;pg=1;rerender()};
+ });
+ $('#asof').onchange=e=>{asof=e.target.value;pg=1;rerender()};
+ const r=$('#rst');if(r)r.onclick=()=>{resetF();rerender()};
+}
+function vWdm(){
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Watchlist Data Management</h1><p class="sub" style="margin:0" id="wsub"></p></div>
+  <div class="tabs" id="vt"><button data-v="item" class="${wv==='item'?'on':''}">Item View</button><button data-v="detail" class="${wv==='detail'?'on':''}">Detail View</button></div>
+  <button class="btn" id="exp">${ic('dl')}Export</button>${roleKey!=='checker'?`<button class="btn pri" id="add">${ic('in')}Tambah data</button>`:''}</div>
+  <div class="card"><div class="bar2"><label class="search">${ic('search')}<input id="q" placeholder="Cari nama, alias, ID Watchlist, NIK, CIF, Kode Dugaan…" value="${esc(q)}"></label></div>
+  <div class="bar2" id="chips"></div><div id="tbl"></div></div>`;
+ $('#vt').onclick=e=>{const b=e.target.closest('button');if(b){wv=b.dataset.v;pg=1;vWdm()}};
+ $('#q').oninput=e=>{q=e.target.value;pg=1;wdmTable()};
+ $('#exp').onclick=exportModal;const ad=$('#add');if(ad)ad.onclick=()=>go('input');
+ wdmTable();
+}
+function wdmTable(){
+ $('#chips').innerHTML=chipBar();bindChips(wdmTable);
+ let rows=filtered();
+ $('#wsub').textContent=wv==='item'?'Satu baris = satu Master Entity per kategori. Klik baris untuk membuka detail.':'Database terpadu lintas kategori. Semua kolom selalu tampil; filter hanya menyaring baris.';
+ if(wv==='item'){
+  const cols=[['id','ID WATCHLIST'],['name','NAMA'],['key','PRIMARY KEY'],['cat','KATEGORI'],['sub','SUBKATEGORI'],['nv','VARIASI'],['status','STATUS'],['updated','LAST UPDATED']];
+  rows.forEach(e=>e.nv=e.vars.length);
+  rows.sort((a,b)=>(a[sort.k]>b[sort.k]?1:a[sort.k]<b[sort.k]?-1:0)*sort.d);
+  const pages=Math.max(1,Math.ceil(rows.length/per));if(pg>pages)pg=pages;const sl=rows.slice((pg-1)*per,pg*per);
+  $('#tbl').innerHTML=rows.length?`<div class="tw"><table class="x"><thead><tr>${cols.map(([k,l])=>`<th data-s="${k}">${l}<span class="ar">${sort.k===k?(sort.d>0?'▲':'▼'):'↕'}</span></th>`).join('')}<th>ACTION</th></tr></thead><tbody>
+   ${sl.map(e=>`<tr data-id="${e.id}" style="cursor:pointer"><td><b style="color:var(--blue2)">${e.id}</b></td><td>${esc(e.name)}</td><td><small style="color:var(--mute)">${KEY[e.cat]==='NIK'?'NIK':'KD'} ·</small> ${esc(e.key)}</td><td>${e.cat}</td><td>${esc(e.sub)}</td><td>${e.nv>1?`<span class="badge b-w">${e.nv} variasi</span>`:'<span style="color:var(--mute)">—</span>'}</td><td>${stBadge(e.status)}</td><td>${dstr(e.updated)}</td><td><button class="link" data-id="${e.id}">View Detail</button></td></tr>`).join('')}
+   </tbody></table></div>`+pager(rows.length,'entitas'):emptyState();
+  document.querySelectorAll('#tbl th[data-s]').forEach(th=>th.onclick=()=>{const k=th.dataset.s;sort=sort.k===k?{k,d:-sort.d}:{k,d:1};wdmTable()});
+  document.querySelectorAll('#tbl tr[data-id]').forEach(tr=>tr.onclick=()=>entityDrawer(tr.dataset.id));
+ }else{
+  const cols=['ID WATCHLIST','KATEGORI','SUBKATEGORI','PRIMARY KEY','NAMA','ALIAS NAMA','NIK','KODE DUGAAN','CIF','NO. REKENING','TEMPAT LAHIR','TANGGAL LAHIR','ALAMAT','KEWARGANEGARAAN','SUMBER DATA','NO. SURAT','TGL DILAPORKAN','PIC GROUP','STATUS','KETERANGAN DELISTING'];
+  const flat=rows.flatMap(e=>e.vars.map((v,j)=>({e,v,j})));
+  const pages=Math.max(1,Math.ceil(flat.length/per));if(pg>pages)pg=pages;const sl=flat.slice((pg-1)*per,pg*per);
+  $('#tbl').innerHTML=flat.length?`<div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
+  ${sl.map(({e,v,j},i)=>{const kd=KEY[e.cat]==='Kode Dugaan';return `<tr class="${hlId===e.id?'hl':''}"><td class="rn">${(pg-1)*per+i+1}</td><td><b style="color:var(--blue2)">${e.id}</b>${e.vars.length>1?` <small style="color:var(--mute)">v${j+1}</small>`:''}</td><td>${e.cat}</td><td>${esc(e.sub)}</td><td>${esc(e.key)}</td><td>${esc(v.nama)}</td>${nul(v.alias)}${nul(e.nik)}${nul(kd?e.key:null)}${nul(e.cif)}${nul(e.rek)}${nul(v.tempat)}<td>${dstr(v.tgl)}</td>${nul(v.alamat)}${nul(e.kwn)}<td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${dstr(v.tglLapor)}</td><td>${esc(e.unit)}</td><td>${stBadge(e.status)}</td>${nul(e.status==='Delisted'?'Surat pencabutan dari sumber':null)}</tr>`}).join('')}
+  </tbody></table></div>`+pager(flat.length,'baris'):emptyState();
+ }
+ bindPager(wdmTable);
+}
+function emptyState(){return `<div class="empty">${ic('search')}<p><b>Tidak ada data yang cocok</b><br>Coba ubah kata kunci atau filter.</p><button class="btn" onclick="void 0" id="rst2">Reset filter</button></div>`}
+function pager(total,unit){const pages=Math.max(1,Math.ceil(total/per));let b=[];for(let i=1;i<=pages;i++)if(i===1||i===pages||Math.abs(i-pg)<=1)b.push(i);else if(b[b.length-1]!=='…')b.push('…');
+ return `<div class="pg"><span>Menampilkan ${fmt((pg-1)*per+1)}–${fmt(Math.min(pg*per,total))} dari ${fmt(total)} ${unit} <small>(subset data contoh)</small></span><div class="pb">Rows <select id="per">${[10,25,50].map(n=>`<option ${n===per?'selected':''}>${n}</option>`).join('')}</select>
+ <button data-g="${pg-1}" ${pg===1?'disabled':''}>‹</button>${b.map(x=>x==='…'?'<span>…</span>':`<button data-g="${x}" class="${x===pg?'on':''}">${x}</button>`).join('')}<button data-g="${pg+1}" ${pg===pages?'disabled':''}>›</button></div></div>`}
+function bindPager(fn){document.querySelectorAll('.pg [data-g]').forEach(b=>b.onclick=()=>{pg=+b.dataset.g;fn()});const s=$('#per');if(s)s.onchange=e=>{per=+e.target.value;pg=1;fn()};const r=$('#rst2');if(r)r.onclick=()=>{resetF();fn()}}
+
+function entityDrawer(id){
+ const e=ENT.find(x=>x.id===id);const aml=roleKey==='aml';
+ const attrs=['nama','alamat'].map(a=>{const vals=[...new Map(e.vars.map(v=>[v[a],v])).values()];return {a,vals}});
+ openDrawer(`<div class="dh"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><small style="color:var(--mute);font-size:11px">ENTITY DETAIL</small><h2 style="font-size:18px;margin:2px 0 6px">${esc(e.name)}</h2>
+  <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-b">${e.id} · ${e.cat}</span>${stBadge(e.status)}</div></div><button class="ib" id="dx" aria-label="Tutup">${ic('x')}</button></div></div>
+ <div class="db">
+  <div class="sec"><h3>${ic('user')}Entity Information</h3><dl class="kv"><dt>ID Watchlist</dt><dd>${e.id}</dd><dt>Kategori</dt><dd>${e.cat}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}</dd><dt>Primary key (${KEY[e.cat]})</dt><dd>${esc(e.key)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>PIC Group</dt><dd>${esc(e.unit)}</dd><dt>Dibuat</dt><dd>${dstr(e.created)}</dd><dt>Terakhir diubah</dt><dd>${dstr(e.updated)}</dd></dl></div>
+  <div class="sec"><h3>${ic('db')}Attributes &amp; Variations</h3>${e.vars.length>1?`<div class="alert w">${ic('warn')}<span><b>Ada ${e.vars.length} variasi atribut</b>Key sama dalam kategori yang sama. Variasi dipertahankan beserta sumbernya.</span></div>`:''}
+   ${attrs.map(({a,vals})=>`<div class="var"><div class="vh"><b style="color:var(--ink)">${a==='nama'?'Nama':'Alamat'}</b><span>${vals.length} variasi</span></div><ul>${vals.map(v=>`<li><span>${esc(v[a])}</span><small>${esc(v.src)}</small></li>`).join('')}</ul></div>`).join('')}
+   <div class="var"><div class="vh"><b style="color:var(--ink)">Tempat / Tanggal lahir</b><span>1 nilai</span></div><ul><li><span>${esc(e.vars[0].tempat)}, ${dstr(e.vars[0].tgl)}</span><small>${esc(e.vars[0].src)}</small></li></ul></div></div>
+  <div class="sec"><h3>${ic('file')}Source &amp; Provenance</h3>${e.vars.map((v,i)=>`<dl class="kv" style="margin-bottom:10px"><dt>Sumber ${i+1}</dt><dd>${esc(v.src)}</dd><dt>No. surat / referensi</dt><dd>${esc(v.ref)}</dd><dt>Tanggal dilaporkan</dt><dd>${dstr(v.tglLapor)}</dd></dl>`).join('')}</div>
+  <div class="sec"><h3>${ic('hist')}Activity History</h3><div class="tl">${[...e.hist].reverse().map(h=>`<div><b style="font-weight:500">${esc(h.a)}</b><small>${dstr(h.t)} · ${esc(h.u)}</small><small>${esc(h.r)}</small></div>`).join('')}</div></div>
+ </div>
+ <div class="df"><button class="btn pri" id="ofd">${ic('link')}Open Full Detail View</button>
+  ${e.status!=='Delisted'&&roleKey!=='checker'?`<button class="btn dan" id="dl">${aml?'Delist':'Ajukan delisting'}</button>`:''}
+  ${e.status==='Delisted'&&aml?`<button class="btn" id="re">Reactivate</button>`:''}
+  ${aml?`<button class="btn" id="ed">Edit</button>`:''}</div>`);
+ $('#dx').onclick=closeDrawer;
+ $('#ofd').onclick=()=>{wv='detail';resetF();q=e.id;hlId=e.id;go('wdm')};
+ const dl=$('#dl');if(dl)dl.onclick=()=>delistModal(e);
+ const re=$('#re');if(re)re.onclick=()=>{e.status='Active';e.updated=new Date();e.hist.push({t:new Date(),a:'Reactivated',u:ROLE.name,r:'Reaktivasi oleh AML'});log('Reactivated',e.id,'Reaktivasi');toast(e.id+' diaktifkan kembali');entityDrawer(id);wdmTable()};
+ const ed=$('#ed');if(ed)ed.onclick=()=>editModal(e);
+}
+function delistModal(e){
+ const aml=roleKey==='aml';
+ openModal(`<h2>${aml?'Delist':'Ajukan delisting'} ${e.id}</h2><p class="sub" style="margin-top:4px">${esc(e.name)} · ${e.cat}. ${e.cat!=='Negative List'?'Record tetap ada dengan status Delisted dan dicatat juga di Negative List.':''} ${aml?'':'Pengajuan akan direview AML.'}</p>
+ <form id="fd"><div class="fld"><label>Alasan delisting <i>*</i></label><select name="r"><option value="">Pilih alasan</option><option>Surat pencabutan dari sumber</option><option>Salah identitas</option><option>Putusan pengadilan</option><option>Lainnya</option></select></div>
+ <div class="fld"><label>Nomor referensi <i>*</i></label><input name="ref" placeholder="mis. B-123/PPATK/2026"></div>
+ <div class="fld"><label>Catatan</label><textarea name="n"></textarea></div>
+ <div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn dan" type="submit">${aml?'Delist sekarang':'Kirim pengajuan'}</button></div></form>`);
+ $('#modal').querySelector('[data-x]').onclick=closeModal;
+ $('#fd').onsubmit=ev=>{ev.preventDefault();const f=ev.target;let ok=true;
+  ['r','ref'].forEach(n=>{const el=f[n],w=el.closest('.fld');w.querySelector('.em')?.remove();if(!el.value.trim()){ok=false;w.classList.add('bad');w.insertAdjacentHTML('beforeend','<span class="em">Wajib diisi</span>')}else w.classList.remove('bad')});
+  if(!ok)return;
+  if(aml){e.status='Delisted';e.updated=new Date();e.hist.push({t:new Date(),a:'Delisted',u:ROLE.name,r:f.r.value+' · '+f.ref.value});log('Delisted',e.id,f.r.value);toast(e.id+' di-delist')}
+  else{SUBS.unshift({id:'SUB-2611-0'+(15+SUBS.length),title:'Pengajuan delisting '+e.id,unit:'Unit Kerja A',maker:ROLE.name,created:new Date(),stage:1,status:'Menunggu Checker',n:1,err:0,warn:0,letters:[f.ref.value]});log('Delisting requested',e.id,f.r.value);toast('Pengajuan delisting dikirim ke Checker')}
+  closeModal();entityDrawer(e.id);wdmTable();renderNav()};
+}
+function editModal(e){
+ openModal(`<h2>Edit ${e.id}</h2><p class="sub" style="margin-top:4px">Perubahan tercatat di audit trail. Aturan approval ulang setelah edit AML masih TBD.</p>
+ <form id="fe"><div class="fld"><label>Subkategori</label><select name="sub">${SUBC[e.cat].map(s=>`<option ${s===e.sub?'selected':''}>${esc(s)}</option>`).join('')}</select></div>
+ <div class="fld"><label>CIF</label><input name="cif" value="${esc(e.cif||'')}"></div><div class="fld"><label>Alasan perubahan <i>*</i></label><input name="r" required></div>
+ <div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn pri">Simpan</button></div></form>`);
+ $('#modal').querySelector('[data-x]').onclick=closeModal;
+ $('#fe').onsubmit=ev=>{ev.preventDefault();const f=ev.target;e.sub=f.sub.value;e.cif=f.cif.value||null;e.updated=new Date();e.hist.push({t:new Date(),a:'Updated',u:ROLE.name,r:f.r.value});log('Updated',e.id,f.r.value);closeModal();toast('Perubahan disimpan');entityDrawer(e.id);wdmTable()};
+}
+function exportModal(){
+ const rows=filtered();
+ openModal(`<h2>General Export</h2><p class="sub" style="margin-top:4px">Full format, mengikuti filter yang sedang aktif: <b>${fmt(rows.length)}</b> entitas.</p>
+ <div class="fld"><label>Format</label><select id="ef"><option>CSV</option><option>Excel (.xlsx)</option></select></div>
+ <div class="mact"><button class="btn" data-x>Batal</button><button class="btn pri" id="eg">${ic('dl')}Generate</button></div>`);
+ $('#modal').querySelector('[data-x]').onclick=closeModal;
+ $('#eg').onclick=()=>{const csv=['ID_WATCHLIST;KATEGORI;SUBKATEGORI;PRIMARY_KEY;NAMA;SUMBER;STATUS',...rows.flatMap(e=>e.vars.map(v=>[e.id,e.cat,e.sub,e.key,v.nama,v.src,e.status].join(';')))].join('\n');log('Export','General export',rows.length+' entitas');showCsv('Export_Watchlist_'+today.toISOString().slice(0,10)+'.csv',csv)};
+}
+
+/* ================= INPUT DATA ================= */
+let inTab='bulk',BULK=null,scCat='Scammer';
+const FIELDS={nama:'Nama',alias:'Alias Nama',nik:'NIK',kode:'Kode Dugaan',cif:'CIF',rek:'No. Rekening',tempat_lahir:'Tempat Lahir',tgl_lahir:'Tanggal Lahir',alamat:'Alamat',kwn:'Kewarganegaraan',sumber:'Sumber Data',no_surat:'No. Surat / Referensi',tgl_lapor:'Tanggal Dilaporkan'};
+function vInput(){
+ if(roleKey==='checker'){$('#view').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Role Checker/Signer tidak dapat membuat input.</b><br>Ganti role ke Maker atau AML Admin dari menu profil.</p></div>`;return}
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Input Data</h1><p class="sub" style="margin:0">Semua input memakai template standar BRI. Field wajib mengikuti kategori.</p></div>
+ <div class="tabs" id="it"><button data-t="single" class="${inTab==='single'?'on':''}">Single Entry</button><button data-t="bulk" class="${inTab==='bulk'?'on':''}">Bulk Upload</button></div></div><div id="ib"></div>`;
+ $('#it').onclick=e=>{const b=e.target.closest('button');if(b){inTab=b.dataset.t;vInput()}};
+ inTab==='single'?single():bulk();
+}
+function single(){
+ const cats=ROLE.scope;if(!cats.includes(scCat))scCat=cats[0];
+ const isKD=KEY[scCat]==='Kode Dugaan';const show=Object.keys(FIELDS).filter(k=>!(isKD&&k==='rek')&&!(!isKD&&k==='kode'));
+ $('#ib').innerHTML=`<div class="card"><form id="sf" novalidate><div class="fgrid"><div class="fld"><label>Kategori <i>*</i></label><select id="scat">${cats.map(c=>`<option ${c===scCat?'selected':''}>${c}</option>`).join('')}</select></div>
+ <div class="fld"><label>Subkategori <i>*</i></label><select name="sub">${SUBC[scCat].map(s=>`<option>${esc(s)}</option>`).join('')}</select></div></div>
+ <div class="alert i">${ic('lock')}<span>Primary key untuk <b style="display:inline">${scCat}</b>: ${KEY[scCat]}. Field bertanda * wajib untuk kategori ini.</span></div>
+ <div class="fgrid">${show.map(k=>{const req=MAND[scCat].includes(k);const t=k.startsWith('tgl')?'date':'text';
+  return `<div class="fld"><label>${FIELDS[k]} ${req?'<i>*</i>':''}</label>${k==='sumber'?`<select name="${k}"><option value="">Pilih sumber</option>${SOURCES.map(s=>`<option>${s}</option>`).join('')}</select>`:`<input name="${k}" type="${t}" ${k==='nik'?'inputmode="numeric" maxlength="16" placeholder="16 digit"':''}>`}</div>`}).join('')}</div>
+ <div class="mact"><button type="button" class="btn" id="lk">${ic('search')}Lookup Big Data</button><button type="button" class="btn" id="dr">Simpan draft</button><button class="btn pri">Validasi &amp; lanjut ke preview</button></div></form></div>`;
+ $('#scat').onchange=e=>{scCat=e.target.value;single()};
+ const f=$('#sf');
+ $('#lk').onclick=()=>{const k=f.nik?.value||f.cif.value||f.rek?.value;if(!k){toast('Isi NIK, CIF atau No. Rekening untuk lookup');return}
+  openModal(`<h2>Hasil lookup Big Data</h2><div class="alert w">${ic('warn')}<span><b>Mismatch ditemukan</b>Data pengajuan berbeda dengan data nasabah.</span></div><div class="tw" style="max-height:none"><table class="x"><thead><tr><th>FIELD</th><th>PENGAJUAN</th><th>BIG DATA</th></tr></thead><tbody><tr><td>Nama</td><td>${esc(f.nama.value||'—')}</td><td>${esc((f.nama.value||'Andi Saputra').toUpperCase())}</td></tr><tr class="hl"><td>Tanggal Lahir</td><td>${esc(f.tgl_lahir.value||'—')}</td><td>1988-04-12</td></tr><tr><td>CIF</td><td>${esc(f.cif.value||'—')}</td><td>CIF4471209</td></tr></tbody></table></div><div class="mact"><button class="btn" data-x>Tutup</button><button class="btn pri" id="ap">Pakai data Big Data</button></div>`);
+  $('#modal').querySelector('[data-x]').onclick=closeModal;$('#ap').onclick=()=>{f.tgl_lahir.value='1988-04-12';f.cif.value='CIF4471209';closeModal();toast('Data Big Data diterapkan')}};
+ $('#dr').onclick=()=>{toast('Draft disimpan (boleh masih ada error)');log('Draft saved','Single entry',scCat)};
+ f.onsubmit=ev=>{ev.preventDefault();let ok=true;
+  f.querySelectorAll('.fld').forEach(w=>{w.classList.remove('bad');w.querySelector('.em')?.remove()});
+  MAND[scCat].forEach(k=>{const el=f[k];if(!el)return;const w=el.closest('.fld');let m='';if(!el.value.trim())m='Wajib untuk '+scCat;else if(k==='nik'&&!/^\d{16}$/.test(el.value))m='NIK harus 16 digit angka';if(m){ok=false;w.classList.add('bad');w.insertAdjacentHTML('beforeend',`<span class="em">${m}</span>`)}});
+  if(!ok){toast('Masih ada field yang perlu diperbaiki');return}
+  const r={cat:scCat};Object.keys(FIELDS).forEach(k=>r[k]=f[k]?.value||'');BULK=BULK||{name:'Single entry',rows:[]};BULK.rows.push(r);inTab='bulk';vInput();toast('Record ditambahkan ke preview')};
+}
+function sampleRows(){const R=[];const ex=ENT.find(e=>e.cat==='Scammer');
+ for(let i=0;i<12;i++){const c=i<8?'Scammer':'Negative List';R.push({cat:c,nama:pick(NAMES),nik:'3'+String(Math.floor(rnd()*1e15)).padStart(15,'0'),cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):'',rek:rnd()<.5?'0'+Math.floor(rnd()*1e14):'',tempat_lahir:pick(CITIES),tgl_lahir:'198'+i%10+'-0'+(1+i%9)+'-1'+i%9,alamat:'Jl. Kenanga No.'+(i+3),sumber:pick(['Unit Fraud BRI','Kepolisian','OJK']),no_surat:'ND-'+(900+i)+'/UKA/2026',tgl_lapor:'2026-11-1'+i%9,kode:'',alias:'',kwn:'Indonesia'})}
+ R[2].nik='3271'+'0012';R[5].no_surat='';R[7].nik=ex.key;R[7].nama=ex.name+' S.';R[9].sumber='';R[10].mm=true;return R}
+function validate(r){const issues={};
+ MAND[r.cat].forEach(k=>{if(!String(r[k]||'').trim())issues[k]=['e','Wajib untuk '+r.cat]});
+ if(r.nik&&!/^\d{16}$/.test(r.nik))issues.nik=['e','NIK harus 16 digit'];
+ if(r.nik){const d=ENT.find(e=>e.cat===r.cat&&e.key===r.nik);if(d&&!issues.nik)issues.nik=['w','Key sudah ada di '+d.id+' → masuk sebagai variasi']}
+ if(r.mm&&!issues.tgl_lahir)issues.tgl_lahir=['w','Mismatch dengan Big Data (1988-04-12)'];
+ r.st=Object.values(issues).some(x=>x[0]==='e')?'Error':Object.keys(issues).length?'Warning':'Valid';r.iss=issues;return r}
+function bulk(){
+ if(!BULK){$('#ib').innerHTML=`<div class="g row2"><div class="card"><h2>1. Unggah file</h2><p class="sub" style="margin:4px 0 14px">Format .xlsx atau .csv sesuai template standar BRI.</p>
+  <label class="drop" id="drop">${ic('up')}<p><b style="color:var(--ink)">Tarik file ke sini atau klik untuk memilih</b><br>Maks. 10.000 baris per file</p><input type="file" accept=".csv,.xlsx" hidden id="fi"></label>
+  <div style="text-align:center;margin-top:12px"><button class="btn" id="smp">Gunakan file contoh (12 baris)</button></div></div>
+  <div class="card"><h2>Template standar BRI</h2><p class="sub" style="margin:4px 0 12px">Satu template untuk semua kategori; kolom wajib ditandai per kategori.</p>
+  <div class="tw" style="max-height:260px"><table class="x"><thead><tr><th>KOLOM</th>${CATS.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${Object.entries(FIELDS).map(([k,l])=>`<tr><td>${l}</td>${CATS.map(c=>`<td style="text-align:center">${MAND[c].includes(k)?'<b style="color:var(--err)">Wajib</b>':'<span style="color:var(--mute)">opsional</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+  <button class="btn" style="margin-top:12px" id="tpl">${ic('dl')}Unduh template</button></div></div>`;
+  const load=name=>{BULK={name,rows:sampleRows()};toast('File dibaca: 12 baris');bulk()};
+  $('#smp').onclick=()=>load('Watchlist_Scammer_Nov.xlsx');$('#fi').onchange=e=>e.target.files[0]&&load(e.target.files[0].name);
+  const d=$('#drop');d.ondragover=e=>{e.preventDefault();d.classList.add('ov')};d.ondragleave=()=>d.classList.remove('ov');d.ondrop=e=>{e.preventDefault();d.classList.remove('ov');e.dataTransfer.files[0]&&load(e.dataTransfer.files[0].name)};
+  $('#tpl').onclick=()=>showCsv('Template_Watchlist_BRI.csv','KATEGORI;'+Object.values(FIELDS).join(';').toUpperCase());
+  return}
+ BULK.rows.forEach(validate);
+ const c={Valid:0,Warning:0,Error:0};BULK.rows.forEach(r=>c[r.st]++);
+ const keys=['cat',...Object.keys(FIELDS).filter(k=>k!=='kode'&&k!=='alias')];
+ $('#ib').innerHTML=`<div class="card"><div class="ch"><div><h2>2. Preview &amp; validasi · ${esc(BULK.name)}</h2><p>Klik sel untuk memperbaiki langsung. Validasi berjalan otomatis.</p></div><div class="sp"></div>
+  <span class="chip" data-vf="all">Semua ${BULK.rows.length}</span><span class="chip" data-vf="Valid" style="color:var(--ok)">Valid ${c.Valid}</span><span class="chip" data-vf="Warning" style="color:var(--warn)">Warning ${c.Warning}</span><span class="chip" data-vf="Error" style="color:var(--err)">Error ${c.Error}</span></div>
+  ${c.Error?`<div class="alert e">${ic('warn')}<span><b>${c.Error} baris masih error</b>Perbaiki dulu sebelum submit. Draft tetap bisa disimpan.</span></div>`:c.Warning?`<div class="alert w">${ic('warn')}<span><b>${c.Warning} warning perlu ditinjau</b>Variasi key dan mismatch Big Data akan direview AML.</span></div>`:`<div class="alert i">${ic('ok')}<span><b>Semua baris valid</b>Siap diajukan.</span></div>`}
+  <div class="tw"><table class="x" id="pv"><thead><tr><th class="rn">#</th><th>VALIDASI</th>${keys.map(k=>`<th>${k==='cat'?'KATEGORI':FIELDS[k].toUpperCase()}</th>`).join('')}<th></th></tr></thead><tbody>
+  ${BULK.rows.map((r,i)=>(vf==='all'||r.st===vf)?`<tr data-i="${i}"><td class="rn">${i+1}</td><td title="${esc(Object.entries(r.iss).map(([k,v])=>FIELDS[k]+': '+v[1]).join('\n'))}">${vBadge(r.st)}</td>${keys.map(k=>{const is=r.iss[k];return `<td contenteditable="true" data-k="${k}" class="${is?(is[0]==='e'?'ce':'cw'):''}" title="${is?esc(is[1]):''}">${esc(r[k]||'')}</td>`}).join('')}<td><button class="link" data-del="${i}" title="Hapus baris">${ic('x')}</button></td></tr>`:'').join('')}
+  </tbody></table></div>
+  <div class="pg"><span>Arahkan kursor ke sel berwarna untuk melihat penjelasan.</span><div class="pb"><button class="btn" id="bc" style="height:38px">Batal</button><button class="btn" id="bd" style="height:38px">Simpan draft</button><button class="btn pri" id="bs" style="height:38px" ${c.Error?'disabled':''}>Submit ke Checker</button></div></div></div>`;
+ document.querySelectorAll('[data-vf]').forEach(ch=>{if(ch.dataset.vf===vf)ch.classList.add('act');ch.onclick=()=>{vf=ch.dataset.vf;bulk()}});
+ $('#pv').addEventListener('focusout',e=>{const td=e.target.closest('td[data-k]');if(!td)return;const r=BULK.rows[+td.parentNode.dataset.i];const v=td.textContent.trim();if(r[td.dataset.k]!==v){r[td.dataset.k]=v;if(td.dataset.k==='tgl_lahir')r.mm=false;bulk()}});
+ $('#pv').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('td[data-k]')){e.preventDefault();e.target.blur()}});
+ document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{BULK.rows.splice(+b.dataset.del,1);bulk()});
+ $('#bc').onclick=()=>{BULK=null;bulk()};
+ $('#bd').onclick=()=>{SUBS.unshift({id:'SUB-2611-0'+(15+SUBS.length),title:'Draft · '+BULK.name,unit:'Unit Kerja A',maker:ROLE.name,created:new Date(),stage:0,status:'Draft',n:BULK.rows.length,err:c.Error,warn:c.Warning,letters:[...new Set(BULK.rows.map(r=>r.no_surat).filter(Boolean))].slice(0,3)});log('Draft saved',BULK.name,BULK.rows.length+' baris');BULK=null;toast('Draft disimpan');go('appr')};
+ $('#bs').onclick=()=>{const s={id:'SUB-2611-0'+(15+SUBS.length),title:BULK.name,unit:roleKey==='aml'?'AML Group':'Unit Kerja A',maker:ROLE.name,created:new Date(),stage:1,status:'Menunggu Checker',n:BULK.rows.length,err:0,warn:c.Warning,letters:[...new Set(BULK.rows.map(r=>r.no_surat).filter(Boolean))].slice(0,3)};SUBS.unshift(s);log('Submitted',s.id,s.n+' record');BULK=null;selSub=s.id;toast(s.id+' diajukan ke Checker');go('appr')};
+}
+let vf='all';
+
+/* ================= SUBMISSION & APPROVAL ================= */
+let sf='all',selSub=null;
+const pendingFor=s=>(roleKey==='checker'&&(s.stage===1||s.stage===2)&&s.status!=='Dikembalikan')||(roleKey==='aml'&&s.stage===3)||(roleKey==='maker'&&['Draft','Dikembalikan'].includes(s.status));
+const sBadge=s=>`<span class="badge ${s==='Approved'?'b-ok':s==='Dikembalikan'?'b-e':s==='Draft'?'b-m':'b-w'}">${esc(s)}</span>`;
+function vAppr(){
+ const vis=SUBS.filter(s=>roleKey==='aml'||s.unit==='Unit Kerja A');
+ const groups={all:'Semua',mine:'Perlu tindakan saya',Draft:'Draft',prog:'Dalam proses',Approved:'Approved',Dikembalikan:'Dikembalikan'};
+ const list=vis.filter(s=>sf==='all'||(sf==='mine'?pendingFor(s):sf==='prog'?/Menunggu|Review/.test(s.status):s.status===sf));
+ if(!selSub||!vis.find(s=>s.id===selSub))selSub=(list[0]||vis[0])?.id;
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Submission &amp; Approval</h1><p class="sub" style="margin:0">Alur Maker → Checker → Signer → AML Review. Anda login sebagai <b>${ROLE.short}</b>.</p></div>${roleKey!=='checker'?`<button class="btn pri" id="nw">${ic('in')}Submission baru</button>`:''}</div>
+ <div class="bar2">${Object.entries(groups).map(([k,l])=>{const n=k==='mine'?vis.filter(pendingFor).length:null;return `<span class="chip ${sf===k?'act':''}" data-sf="${k}">${l}${n?` <em class="badge b-w">${n}</em>`:''}</span>`}).join('')}</div>
+ <div class="split"><div class="card list" style="padding:8px">${list.length?list.map(s=>`<div class="li ${s.id===selSub?'on':''}" data-s="${s.id}"><div style="flex:1"><b style="font-weight:600">${esc(s.title)}</b><br><small style="color:var(--mute)">${s.id} · ${esc(s.unit)} · ${s.n} record · ${dstr(s.created)}</small></div>${sBadge(s.status)}</div>`).join(''):`<div class="empty">Tidak ada submission di filter ini.</div>`}</div>
+ <div class="card" id="sd"></div></div>`;
+ document.querySelectorAll('[data-sf]').forEach(c=>c.onclick=()=>{sf=c.dataset.sf;selSub=null;vAppr()});
+ document.querySelectorAll('[data-s]').forEach(c=>c.onclick=()=>{selSub=c.dataset.s;vAppr()});
+ const nw=$('#nw');if(nw)nw.onclick=()=>go('input');
+ subDetail();
+}
+function subDetail(){
+ const s=SUBS.find(x=>x.id===selSub);if(!s){$('#sd').innerHTML='<div class="empty">Pilih submission</div>';return}
+ const can=pendingFor(s);
+ $('#sd').innerHTML=`<div class="ch"><div><small style="color:var(--mute)">${s.id}</small><h2 style="font-size:17px">${esc(s.title)}</h2></div><div class="sp"></div>${sBadge(s.status)}</div>
+ <div class="steps">${STAGES.map((l,i)=>`<div class="st ${s.status==='Approved'||i<s.stage?'done':i===s.stage&&s.status!=='Draft'&&s.status!=='Dikembalikan'?'cur':''}" data-n="${i+1}">${l}</div>`).join('')}</div>
+ ${s.note?`<div class="alert e" style="margin-top:12px">${ic('warn')}<span><b>Catatan pengembalian</b>${esc(s.note)}</span></div>`:''}
+ <dl class="kv" style="margin:16px 0"><dt>Unit pengaju</dt><dd>${esc(s.unit)}</dd><dt>Maker</dt><dd>${esc(s.maker)}</dd><dt>Jumlah record</dt><dd>${s.n}</dd><dt>Surat pengajuan</dt><dd>${s.letters.map(esc).join(', ')}</dd><dt>Hasil validasi</dt><dd>${s.err?`<span class="badge b-e">${s.err} error</span> `:''}${s.warn?`<span class="badge b-w">${s.warn} warning</span> `:''}${!s.err&&!s.warn?'<span class="badge b-ok">Semua valid</span>':''}</dd></dl>
+ <div class="tw" style="max-height:220px"><table class="x"><thead><tr><th>#</th><th>NAMA</th><th>KATEGORI</th><th>PRIMARY KEY</th><th>VALIDASI</th></tr></thead><tbody>${Array.from({length:Math.min(5,s.n)},(_,i)=>{const st=i<s.err?'Error':i<s.err+s.warn?'Warning':'Valid';return `<tr><td>${i+1}</td><td>${NAMES[(i*7+s.n)%NAMES.length]}</td><td>${/DTTOT/.test(s.title)?'DTTOT':/Negative|Fraud/.test(s.title)?'Negative List':'Scammer'}</td><td>${/DTTOT/.test(s.title)?'DT-0'+(300+i):'3271'+String(1e11+i*7919).slice(0,12)}</td><td>${vBadge(st)}${st==='Warning'?' <small style="color:var(--warn)">mismatch Big Data</small>':''}</td></tr>`}).join('')}</tbody></table></div>
+ <p class="note">Menampilkan 5 dari ${s.n} record.</p>
+ <div class="mact" style="flex-wrap:wrap">${can?(roleKey==='maker'?`<button class="btn" id="wd">Withdraw</button><button class="btn pri" id="ed2">Buka &amp; perbaiki</button>`:`<button class="btn dan" id="rj">${roleKey==='aml'?'Tahan / koreksi':'Kembalikan ke Maker'}</button><button class="btn pri" id="apv">${roleKey==='aml'?'Setujui → Ready for distribution':s.stage===1?'Setujui sebagai Checker':'Setujui sebagai Signer'}</button>`):`<span class="lock">${ic('lock')}${s.status==='Approved'?'Selesai: data masuk Watchlist Database.':'Tidak ada tindakan untuk role Anda di tahap ini.'}</span>`}</div>`;
+ const apv=$('#apv');if(apv)apv.onclick=()=>{s.stage++;s.status=s.stage===2?'Menunggu Signer':s.stage===3?'AML Review':'Approved';if(s.stage===4)s.stage=4;log('Approved',s.id,STAGES[s.stage-1]);toast(s.id+' disetujui → '+s.status);vAppr()};
+ const rj=$('#rj');if(rj)rj.onclick=()=>{openModal(`<h2>${roleKey==='aml'?'Tahan untuk koreksi':'Kembalikan ke Maker'}</h2><p class="sub" style="margin-top:4px">${s.id} · alasan wajib diisi dan tercatat di audit trail.</p><div class="fld"><label>Alasan <i>*</i></label><textarea id="rr"></textarea></div><div class="mact"><button class="btn" data-x>Batal</button><button class="btn dan" id="rok">Kirim</button></div>`);
+  $('#modal').querySelector('[data-x]').onclick=closeModal;$('#rok').onclick=()=>{const v=$('#rr').value.trim();if(!v){$('#rr').closest('.fld').classList.add('bad');return}
+   if(roleKey==='aml'){s.note='AML: '+v;toast('Catatan koreksi ditambahkan; data tetap di AML Review')}else{s.stage=0;s.status='Dikembalikan';s.note=v;toast(s.id+' dikembalikan ke Maker')}log('Returned',s.id,v);closeModal();vAppr()}};
+ const wd=$('#wd');if(wd)wd.onclick=()=>{SUBS.splice(SUBS.indexOf(s),1);log('Withdrawn',s.id,'');toast(s.id+' ditarik');selSub=null;vAppr()};
+ const e2=$('#ed2');if(e2)e2.onclick=()=>{BULK={name:s.title,rows:sampleRows()};inTab='bulk';go('input')};
+}
+
+/* ================= UPLOAD WATCHLIST ================= */
+let upTab='hue',gen={};
+const FMT={hue:['NO_ID','NIK','NAMA','TGL_LAHIR','KATEGORI','SUMBER','STATUS'],iris:['ID_WATCHLIST','NAMA_LENGKAP','TEMPAT_LAHIR','TANGGAL_LAHIR','ALAMAT','JENIS_LIST','KODE_REF']};
+function vUpload(){
+ const aml=roleKey==='aml';
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Upload Watchlist</h1><p class="sub" style="margin:0">Output distribusi format baku. Distribusi bulanan sebelum tanggal 10.</p></div>
+ <div class="tabs" id="ut"><button data-t="hue" class="${upTab==='hue'?'on':''}">Patching HUE</button><button data-t="iris" class="${upTab==='iris'?'on':''}">Patching IRIS</button><button data-t="ba" class="${upTab==='ba'?'on':''}">Generate BA</button></div></div><div id="ub"></div>`;
+ $('#ut').onclick=e=>{const b=e.target.closest('button');if(b){upTab=b.dataset.t;vUpload()}};
+ if(!aml){$('#ub').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Hanya AML yang dapat membentuk file distribusi.</b><br>Ganti role ke AML Admin untuk mencoba.</p></div>`;return}
+ if(upTab==='ba')return baView();
+ const cols=FMT[upTab],act=ENT.filter(e=>e.status==='Active'),flat=upTab==='iris'?act.flatMap(e=>e.vars.map(v=>({e,v}))):act.map(e=>({e,v:e.vars[0]}));
+ const row=({e,v})=>upTab==='hue'?[e.id,e.nik||'NULL',v.nama,v.tgl.toISOString().slice(0,10),e.cat,v.src,'ACTIVE']:[e.id,v.nama,v.tempat,v.tgl.toISOString().slice(0,10),v.alamat,e.cat==='Negative List'?'NEGATIVE':'REJECTION',KEY[e.cat]==='Kode Dugaan'?e.key:'NULL'];
+ $('#ub').innerHTML=`<div class="card"><div class="ch"><div><h2>${upTab==='hue'?'Patching HUE':'Patching IRIS'}</h2><p>Hanya record Active. Tidak ada filter tambahan; urutan kolom terkunci sesuai format yang disetujui.</p></div><div class="sp"></div><span class="lock">${ic('lock')}Fixed approved format</span></div>
+ ${upTab==='iris'?`<div class="alert i">${ic('db')}<span><b>DTTOT/DPPSPM: kombinasi variasi dibentuk otomatis</b>Setiap kombinasi Nama × Tanggal Lahir × Tempat Lahir × Alamat menjadi baris terpisah, dengan provenance tetap tersimpan.</span></div>`:''}
+ ${gen[upTab]?`<div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${flat.slice(0,15).map((r,i)=>`<tr><td class="rn">${i+1}</td>${row(r).map(v=>v==='NULL'?'<td class="n">NULL</td>':`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+  <div class="pg"><span>${flat.length} baris dihasilkan · ${dstr(today)} · as-of ${dstr(today)}</span><div class="pb"><button class="btn" id="csv">${ic('dl')}CSV</button><button class="btn" id="xls">${ic('dl')}Excel</button></div></div>`
+  :`<div class="empty">${ic('file')}<p>Belum ada file yang dibentuk untuk periode ini.</p><button class="btn pri" id="gn">Generate ${upTab.toUpperCase()}</button></div>`}</div>`;
+ const gn=$('#gn');if(gn)gn.onclick=()=>{gn.disabled=true;gn.textContent='Memproses…';setTimeout(()=>{gen[upTab]=1;log('Generate '+upTab.toUpperCase(),'Distribusi',flat.length+' baris');toast('File '+upTab.toUpperCase()+' siap');vUpload()},700)};
+ const csv=()=>showCsv('PATCH_'+upTab.toUpperCase()+'_202611.csv',[cols.join('|'),...flat.map(r=>row(r).join('|'))].join('\n'));
+ const c1=$('#csv');if(c1){c1.onclick=csv;$('#xls').onclick=csv}
+}
+function baView(){
+ $('#ub').innerHTML=`<div class="split"><div class="card"><h2>Data Berita Acara</h2><p class="sub" style="margin:4px 0 14px">Field kosong tetap bisa diisi. Template BA existing (MS Word).</p>
+ <form id="baf">${[['no','Nomor BA','BA-11/AML/2026'],['tgl','Tanggal',today.toISOString().slice(0,10)],['per','Periode data','November 2026'],['jml','Jumlah record','140.968'],['p1','Pihak 1 (AML)','Rina Anggraeni'],['p2','Pihak 2 (IT)','']].map(([k,l,v])=>`<div class="fld"><label>${l}</label><input name="${k}" ${k==='tgl'?'type="date"':''} value="${esc(v)}" placeholder="Isi ${l.toLowerCase()}"></div>`).join('')}</form>
+ <div class="mact"><button class="btn pri" id="bag">${ic('file')}Generate BA (.docx)</button></div></div>
+ <div class="card" id="bap" style="font-family:Georgia,serif;line-height:1.7"></div></div>`;
+ const f=$('#baf'),pv=()=>{const g=n=>esc(f[n].value)||'<span style="background:var(--warnb);padding:0 6px">………</span>';
+  $('#bap').innerHTML=`<p style="text-align:center;margin:0"><b>BERITA ACARA SERAH TERIMA DATA WATCHLIST</b><br>Nomor: ${g('no')}</p><p>Pada tanggal ${g('tgl')}, telah dilakukan serah terima data Watchlist periode ${g('per')} sejumlah ${g('jml')} record untuk keperluan patching HUE dan IRIS.</p><p>Demikian berita acara ini dibuat untuk dipergunakan sebagaimana mestinya.</p><div style="display:flex;justify-content:space-between;margin-top:40px;text-align:center"><span>Pihak Pertama<br><br><br>${g('p1')}</span><span>Pihak Kedua<br><br><br>${g('p2')}</span></div>`};
+ f.oninput=pv;pv();$('#bag').onclick=()=>{log('Generate BA',f.no.value,'');toast('BA dibentuk. Di aplikasi final file .docx akan terunduh.')};
+}
+
+/* ================= AUDIT TRAIL ================= */
+let aq='',aact='',apg=1;
+function vAudit(){
+ const acts=[...new Set(AUDIT.map(a=>a.act))].sort();
+ $('#view').innerHTML=`<h1>Audit Trail</h1><p class="sub">Siapa melakukan apa, kapan, dan alasannya. Tindakan Anda di prototipe ini ikut tercatat di sini.</p>
+ <div class="card"><div class="bar2"><label class="search">${ic('search')}<input id="aq" placeholder="Cari user, objek, alasan…" value="${esc(aq)}"></label>
+ <select class="date" id="aa" style="height:38px;border-radius:10px"><option value="">Semua aktivitas</option>${acts.map(a=>`<option ${a===aact?'selected':''}>${esc(a)}</option>`).join('')}</select></div><div id="at"></div></div>`;
+ $('#aq').oninput=e=>{aq=e.target.value;apg=1;at()};$('#aa').onchange=e=>{aact=e.target.value;apg=1;at()};at();
+}
+function at(){const qq=aq.toLowerCase();const rows=AUDIT.filter(a=>(!aact||a.act===aact)&&(!qq||[a.user,a.obj,a.r,a.act].join(' ').toLowerCase().includes(qq)));
+ const sv=[pg,per];pg=apg;per=15;const pages=Math.max(1,Math.ceil(rows.length/15));if(pg>pages)pg=pages;
+ $('#at').innerHTML=rows.length?`<div class="tw"><table class="x"><thead><tr><th>WAKTU</th><th>USER</th><th>AKTIVITAS</th><th>OBJEK</th><th>ALASAN / KETERANGAN</th></tr></thead><tbody>${rows.slice((pg-1)*15,pg*15).map(a=>`<tr><td>${dstr(a.t)} ${a.t.toTimeString().slice(0,5)}</td><td>${esc(a.user)}</td><td><span class="badge ${/Delist|Return/.test(a.act)?'b-e':/Approv|Reactiv/.test(a.act)?'b-ok':'b-b'}">${esc(a.act)}</span></td><td>${esc(a.obj)}</td>${nul(a.r)}</tr>`).join('')}</tbody></table></div>`+pager(rows.length,'aktivitas'):'<div class="empty">Tidak ada aktivitas yang cocok.</div>';
+ document.querySelectorAll('#at .pg [data-g]').forEach(b=>b.onclick=()=>{apg=+b.dataset.g;at()});const ps=$('#at #per');if(ps)ps.disabled=true;[pg,per]=sv}
+
+/* ================= MASTER DATA ================= */
+let mTab='cat';
+function vMaster(){
+ const aml=roleKey==='aml';
+ const T={cat:'Category',sub:'Subcategory',src:'Source',dict:'Data Dictionary',user:'User & Role'};
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Master Data &amp; Administration</h1><p class="sub" style="margin:0">${aml?'Dikelola oleh AML Group sebagai owner standar data.':'Hanya-baca untuk role Anda.'}</p></div>
+ <div class="tabs" id="mt">${Object.entries(T).map(([k,l])=>`<button data-t="${k}" class="${mTab===k?'on':''}">${l}</button>`).join('')}</div></div><div class="card" id="mb"></div>`;
+ $('#mt').onclick=e=>{const b=e.target.closest('button');if(b){mTab=b.dataset.t;vMaster()}};
+ let head,rows;
+ if(mTab==='cat'){head=['KATEGORI','PRIMARY KEY','LIST','JUMLAH RECORD','STATUS'];rows=CATS.map(c=>[c,KEY[c],c==='Negative List'?'Negative':'Rejection',fmt(TOT[c]),'Active'])}
+ if(mTab==='sub'){head=['SUBKATEGORI','KATEGORI','STATUS'];rows=CATS.flatMap(c=>SUBC[c].map(s=>[s,c,'Active']))}
+ if(mTab==='src'){head=['SUMBER','JENIS','STATUS'];rows=SOURCES.map(s=>[s,/BRI|Unit/.test(s)?'Internal':'Eksternal','Active'])}
+ if(mTab==='dict'){head=['FIELD','LABEL','TIPE ATRIBUT','FORMAT',...CATS.map(c=>'WAJIB · '+c.toUpperCase())];rows=DICT.map(([k,l,t,f])=>[k,l,t,f,...CATS.map(c=>MAND[c].includes(k)?'Ya':'—')])}
+ if(mTab==='user'){head=['USER','GROUP (SCOPE DATA)','ROLE (AKSI)','STATUS'];rows=[['Rina Anggraeni','AML Group · semua kategori','AML Admin','Active'],['Siti Maharani','Unit Kerja A · Scammer, Negative List','Maker','Active'],['Bagus Pranoto','Unit Kerja A · Scammer, Negative List','Checker/Signer','Active'],['Doni Pratama','Unit Kerja B · Negative List','Maker','Active'],['Audit Internal','Read-only · semua','Auditor','Active']]}
+ $('#mb').innerHTML=`<div class="bar2"><div class="sp" style="flex:1"></div>${aml?`<button class="btn pri" id="madd">${ic('in')}Tambah ${T[mTab]}</button>`:`<span class="lock">${ic('lock')}Hanya-baca</span>`}</div>
+ <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}${aml?'<th>ACTION</th>':''}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>v==='Active'?`<td>${stBadge('Active')}</td>`:`<td>${esc(v)}</td>`).join('')}${aml?'<td><button class="link" data-ed>Edit</button></td>':''}</tr>`).join('')}</tbody></table></div>
+ ${mTab==='dict'?'<p class="note">Mandatory fields configurable per kategori. Satu data dictionary untuk common dan category-specific attributes.</p>':''}`;
+ const ma=$('#madd');if(ma)ma.onclick=()=>{openModal(`<h2>Tambah ${T[mTab]}</h2><form id="mf"><div class="fld"><label>Nama <i>*</i></label><input name="n"></div>${mTab==='sub'?`<div class="fld"><label>Kategori induk</label><select name="c">${CATS.map(c=>`<option>${c}</option>`).join('')}</select></div>`:''}<div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn pri">Simpan</button></div></form>`);
+  $('#modal').querySelector('[data-x]').onclick=closeModal;$('#mf').onsubmit=ev=>{ev.preventDefault();const n=ev.target.n.value.trim();if(!n){ev.target.n.closest('.fld').classList.add('bad');return}
+   if(mTab==='src')SOURCES.push(n);else if(mTab==='sub')SUBC[ev.target.c.value].push(n);log('Master data added',T[mTab],n);closeModal();toast(T[mTab]+' "'+n+'" ditambahkan');vMaster()}};
+ document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>toast('Form edit master data (sama seperti tambah)'));
+}
+
+/* ---------- start ---------- */
+const h=location.hash.slice(1);if(TITLES[h])page=h;
+addEventListener('hashchange',()=>{const p=location.hash.slice(1);if(TITLES[p]&&p!==page){page=p;render()}});
+render();
+}
+</script>
+</body>
+</html>
