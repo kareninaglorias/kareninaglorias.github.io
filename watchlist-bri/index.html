@@ -117,11 +117,11 @@ table.x{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 /* drawer, modal */
 .scrim{position:fixed;inset:0;background:#0a172a55;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
 .scrim.on{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:min(540px,100vw);background:var(--card);z-index:61;transform:translateX(100%);transition:transform .25s;display:flex;flex-direction:column;box-shadow:-10px 0 40px #0003}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(860px,100vw);background:var(--card);z-index:61;transform:translateX(100%);transition:transform .25s;display:flex;flex-direction:column;box-shadow:-10px 0 40px #0003}
 .drawer.on{transform:none}
 .dh{padding:18px 22px;border-bottom:1px solid var(--line)}.db{flex:1;overflow:auto;padding:6px 22px 22px}.df{padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
 .sec{padding:16px 0;border-bottom:1px solid var(--line)}.sec:last-child{border:0}
-.sec h3{font-size:13px;margin:0 0 10px;display:flex;align-items:center;gap:8px;color:var(--blue2)}
+.sec h3{font-size:13px;margin:0 0 10px;display:flex;width:100%;align-items:center;gap:8px;color:var(--blue2)}
 .kv{display:grid;grid-template-columns:150px minmax(0,1fr);gap:7px 12px;font-size:13px}.kv dt{color:var(--mute)}.kv dd{margin:0;font-weight:500}
 .var{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .var .vh{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-bottom:6px}
@@ -181,7 +181,7 @@ pre.code{background:var(--head);border-radius:10px;padding:12px;max-height:300px
  <div class="brand"><div class="mark">BRI</div><div><b>BRI</b><small>WATCHLIST SYSTEM</small></div></div>
  <div class="navl">MENU UTAMA</div>
  <nav class="nav" id="nav"></nav>
- <div class="sfoot"><p id="scope"></p><button id="colBtn" title="Perkecil sidebar"><svg class="i"><use href="#i-chl"/></svg><span>Perkecil</span></button></div>
+ <div class="sfoot"><button id="colBtn" title="Perkecil sidebar"><svg class="i"><use href="#i-chl"/></svg><span>Perkecil</span></button></div>
 </aside>
 <div class="main">
  <header class="top">
@@ -273,7 +273,9 @@ const DICT=[['nama','Nama','Common','Teks'],['alias','Alias Nama','Common','Teks
 
 /* ---------- sample data ---------- */
 let ENT=[],VID=1,EID=0;
-const newEid=()=>'WL-'+String(++EID).padStart(5,'0');
+const PFX={DJI:1180,TRS:3405,PNP:45610,JDL:7820,NGV:12340};
+const pfxOf=(sub,src)=>catOf(sub)==='Negative List'||sub==='Delisting Akhir'?'NGV':sub==='DTTOT & DPPSPM'?(['DTTOT','DPPSPM'].includes(src)?'TRS':'DJI'):sub==='Judol'?'JDL':'PNP';
+const newEid=(sub,src)=>{const p=pfxOf(sub,src);PFX[p]+=1+Math.floor(rnd()*40);return p+String(PFX[p]).padStart(7,'0')};
 const GEN=['DTTOT & DPPSPM','DTTOT & DPPSPM','Scammer','Scammer','Scammer','Judol','Judol','Blokir','Blokir','Blokir','Negative News','SIPENDAR','Bank Koresponden','Informasi Lainnya'];
 for(let i=1;i<=60;i++){
  const sub=pick(GEN),cat=catOf(sub);
@@ -281,7 +283,7 @@ for(let i=1;i<=60;i++){
  const status='Active';
  const src=pick(SRC[sub]),src2=SRC[sub].length>1?pick(SRC[sub].filter(x=>x!==src)):src;
  const nik='3'+String(Math.floor(rnd()*1e15)).padStart(15,'0');
- const e={id:newEid(),cat,sub,status,unit:pick(UNITS),
+ const e={id:newEid(sub,src),cat,sub,status,unit:pick(UNITS),
   key:isKD?'KD-'+String(100+i).padStart(4,'0'):nik,
   nik:isKD?(rnd()<.5?null:nik):nik,cif:rnd()<.5?'CIF'+Math.floor(rnd()*1e7):null,rek:!isKD&&rnd()<.6?'0'+Math.floor(rnd()*1e14):null,
   kwn:isKD?pick(['Indonesia','Malaysia','Filipina',null]):'Indonesia',created:daysAgo(Math.floor(rnd()*300)+20),updated:daysAgo(Math.floor(rnd()*20)+5),
@@ -300,7 +302,7 @@ function delistVars(e,vids,why,by,t=new Date()){
  const sel=e.vars.filter(v=>vids.includes(v.vid)&&!v.del);if(!sel.length)return null;
  if(e.cat==='Rejection List'){
   sel.forEach(v=>{v.del=true});
-  const ne={...e,id:newEid(),cat:'Negative List',sub:'Delisting Rejection List',status:'Active',origin:e.id,created:t,updated:t,
+  const ne={...e,id:newEid('Delisting Rejection List'),cat:'Negative List',sub:'Delisting Rejection List',status:'Active',origin:e.id,created:t,updated:t,
    vars:sel.map(v=>({...v,vid:VID++,del:false,orig:v.src,origVid:v.vid,src:'DELISTING - '+v.src})),
    hist:[{t,a:'Created (delisting)',u:by,r:'Dari '+e.id+' (Rejection List) · '+why}]};
   ne.name=ne.vars[0].nama;ENT.push(ne);
@@ -310,7 +312,7 @@ function delistVars(e,vids,why,by,t=new Date()){
  if(e.cat==='Negative List'){
   if(sel.length===live(e).length){e.prevSub=e.sub;e.cat='Delisting Akhir';e.sub='Delisting Akhir';e.status='Delisted';e.updated=t;e.hist.push({t,a:'Delisting Akhir',u:by,r:'Keluar dari Rejection & Negative List · '+why});return e}
   e.vars=e.vars.filter(v=>!vids.includes(v.vid));e.updated=t;
-  const ne={...e,id:newEid(),cat:'Delisting Akhir',sub:'Delisting Akhir',prevSub:e.sub,status:'Delisted',splitFrom:e.id,created:t,updated:t,vars:sel,origin:null,
+  const ne={...e,id:newEid('Delisting Akhir'),cat:'Delisting Akhir',sub:'Delisting Akhir',prevSub:e.sub,status:'Delisted',splitFrom:e.id,created:t,updated:t,vars:sel,origin:null,
    hist:[{t,a:'Delisting Akhir',u:by,r:'Partial dari '+e.id+' · '+why}]};ne.name=ne.vars[0].nama;ENT.push(ne);
   e.hist.push({t,a:'Partial delisting',u:by,r:sel.length+' variasi → '+ne.id+' (Delisting Akhir) · '+why});return ne}
 }
@@ -321,8 +323,8 @@ function restoreToRejection(ne,why,by,t=new Date()){
  ne.status='Delisted';ne.restored=true;ne.updated=t;ne.hist.push({t,a:'Dikembalikan ke Rejection List',u:by,r:'Record di-delist, variasi aktif kembali di '+o.id+' · '+why});
 }
 // seed: some delisting history
-ENT.filter(e=>e.cat==='Rejection List').slice(0,5).forEach((e,i)=>delistVars(e,i===1&&e.vars.length>1?[e.vars[1].vid]:e.vars.map(v=>v.vid),'Surat pencabutan dari sumber','AML Admin',daysAgo(10+i)));
-ENT.filter(e=>e.cat==='Negative List'&&e.sub!=='Delisting Rejection List').slice(0,2).forEach((e,i)=>delistVars(e,e.vars.map(v=>v.vid),'Putusan pengadilan','AML Admin',daysAgo(6+i)));
+ENT.filter(e=>e.cat==='Rejection List').slice(0,3).forEach((e,i)=>delistVars(e,i===1&&e.vars.length>1?[e.vars[1].vid]:e.vars.map(v=>v.vid),'Surat pencabutan dari sumber','AML Admin',daysAgo(10+i)));
+ENT.filter(e=>e.cat==='Negative List'&&e.sub!=='Delisting Rejection List').slice(0,1).forEach((e,i)=>delistVars(e,e.vars.map(v=>v.vid),'Putusan pengadilan','AML Admin',daysAgo(6+i)));
 let SUBS=[
  {id:'SUB-2611-014',type:'Data baru',title:'Penambahan Scammer November',unit:'Unit Kerja A',maker:'Siti M.',created:daysAgo(1),stage:1,status:'Menunggu Checker',n:48,err:0,warn:3,letters:['ND-881/UKA/2026','ND-884/UKA/2026']},
  {id:'SUB-2611-013',type:'Data baru',title:'Update DTTOT PPATK',unit:'AML Group',maker:'Rina A.',created:daysAgo(2),stage:3,status:'AML Review',n:126,err:0,warn:7,letters:['B-2210/PPATK/2026']},
@@ -356,9 +358,9 @@ const needsMe=s=>(roleKey==='checker'&&s.unit==='Unit Kerja A'&&(s.stage===1||s.
 function renderNav(){
  const cnt={appr:SUBS.filter(needsMe).length,mysub:SUBS.filter(s=>mine(s)&&['Draft','Dikembalikan'].includes(s.status)).length};
  $('#nav').innerHTML=NAV.filter(([k])=>navOK(k)).map(([k,i,t])=>`<a data-p="${k}" data-t="${t}" class="${page===k?'on':''}" tabindex="0">${ic(i)}<span>${t}</span>${cnt[k]?`<em class="badge b-w">${cnt[k]}</em>`:''}</a>`).join('');
- $('#scope').textContent=ROLE.lbl;
+ 
 }
-$('#nav').onclick=e=>{const a=e.target.closest('a');if(a){subOpen=null;go(a.dataset.p)}};
+$('#nav').onclick=e=>{const a=e.target.closest('a');if(a){subOpen=null;entOpen=null;go(a.dataset.p)}};
 $('#nav').onkeydown=e=>{if(e.key==='Enter'){const a=e.target.closest('a');if(a)go(a.dataset.p)}};
 let sideMode='exp';try{sideMode=localStorage.getItem('wl-side')||'exp'}catch(e){}
 function applySide(){const s=$('#side');s.classList.toggle('col',sideMode==='col');s.classList.toggle('hid',sideMode==='hid');
@@ -371,7 +373,7 @@ if(innerWidth<760)sideMode='hid';applySide();
 function closeMenus(except){document.querySelectorAll('.menu').forEach(m=>{if(m!==except)m.hidden=true})}
 document.addEventListener('click',e=>{if(!e.target.closest('.dd,.chip'))closeMenus()});
 $('#userBtn').onclick=e=>{e.stopPropagation();const m=$('#userMenu');closeMenus(m);
- m.innerHTML=`<div style="padding:8px 10px;font-size:12px;color:var(--mute)">Ganti role (simulasi hak akses)</div>`+Object.entries(ROLES).map(([k,r])=>`<label><input type="radio" name="rl" value="${k}" ${k===roleKey?'checked':''}> <span><b style="font-weight:500">${r.short}</b><br><small style="color:var(--mute)">${r.name}</small></span></label>`).join('');
+ m.innerHTML=`<div style="padding:8px 10px;font-size:12px;color:var(--mute)">Ganti role</div>`+Object.entries(ROLES).map(([k,r])=>`<label><input type="radio" name="rl" value="${k}" ${k===roleKey?'checked':''}> <span><b style="font-weight:500">${r.short}</b><br><small style="color:var(--mute)">${r.name}</small></span></label>`).join('');
  m.hidden=!m.hidden;m.onchange=ev=>{roleKey=ev.target.value;ROLE=ROLES[roleKey];$('#uname').textContent=ROLE.name;$('#urole').textContent=ROLE.short;$('#av').textContent=ROLE.ini;m.hidden=true;toast('Role diganti ke '+ROLE.short);render()}};
 $('#notifBtn').onclick=e=>{e.stopPropagation();const m=$('#notifMenu');closeMenus(m);
  const items=[['SUB-2611-014 menunggu pemeriksaan Checker','appr','1 jam lalu'],['7 warning mismatch Big Data di SUB-2611-013','appr','3 jam lalu'],['SUB-2611-011 dikembalikan ke Maker','appr','Kemarin'],['Patching HUE bulan November jatuh tempo 10 Des','upload','Kemarin']];
@@ -399,14 +401,14 @@ const inScope=e=>ROLE.scope.includes(e.sub)||(e.cat==='Delisting Akhir'&&ROLE.sc
 
 /* ================= DASHBOARD ================= */
 const srcTot=()=>{const m={};ROLE.scope.filter(x=>x!=='Delisting Akhir').forEach(x=>{const l=(SRC[x]||[]).filter(z=>MSTAT['src|'+z]!=='Inactive');const w=l.map((z,i)=>1/(i+1.3)+((z.length*7)%5)/10),W=w.reduce((a,b)=>a+b,0)||1;l.forEach((z,i)=>m[z]={n:Math.round((TOT[x]||0)*w[i]/W),sub:x})});return Object.entries(m).sort((a,b)=>b[1].n-a[1].n)};
-const TOT={'DTTOT & DPPSPM':44110,'Scammer':21350,'Judol':7897,'Negative News':4210,'Blokir':38402,'Delisting Rejection List':9850,'SIPENDAR':6120,'Bank Koresponden':2340,'Informasi Lainnya':6689,'Delisting Akhir':1284};
+const TOT={'DTTOT & DPPSPM':44110,'Scammer':21350,'Judol':7897,'Negative News':4210,'Blokir':38402,'Delisting Rejection List':9850,'SIPENDAR':6120,'Bank Koresponden':2340,'Informasi Lainnya':6689,'Delisting Akhir':3};
 let period='12';
 function vDash(){
  const scopeTot=ROLE.scope.filter(c=>c!=='Delisting Akhir').reduce((a,c)=>a+TOT[c],0),pend=SUBS.filter(s=>!['Approved','Draft','Dikembalikan'].includes(s.status)).length;
  const inS=c=>SUBC[c].filter(x=>ROLE.scope.includes(x)).reduce((a,x)=>a+(TOT[x]||0),0),rl=inS('Rejection List'),nl=inS('Negative List'),da=inS('Delisting Akhir');
- $('#view').innerHTML=`<h1>Ringkasan Watchlist</h1><p class="sub">Per ${dstr(today)} · ${roleKey==='aml'?'seluruh kategori':'sesuai scope unit Anda'} · data contoh prototipe</p>
+ $('#view').innerHTML=`<h1>Ringkasan Watchlist</h1><p class="sub">Per ${dstr(today)} · ${roleKey==='aml'?'seluruh kategori':'sesuai scope unit Anda'}</p>
  <div class="g kpis">
-  ${[['Total data Watchlist',fmt(scopeTot),'Rejection + Negative List','b-b'],['Rejection List',fmt(rl),(rl/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','b-b'],['Negative List',fmt(nl),(nl/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','b-b'],['Delisting Akhir',fmt(da),'Tidak ikut patching','mute'],['Pending approval',pend,'Menunggu tindakan','warn']].map(([l,v,s,c],i)=>`<div class="card kpi" data-i="${i}" tabindex="0"><small>${l}</small><b>${v}</b><em style="color:var(--${c==='b-b'?'blue2':c})">${s}</em></div>`).join('')}
+  ${[['Total data Watchlist',fmt(scopeTot),'Rejection + Negative List','b-b'],['Rejection List',fmt(rl),(rl/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','b-b'],['Negative List',fmt(nl),(nl/scopeTot*100).toFixed(1).replace('.',',')+'% dari total','b-b'],['Pending approval',pend,'Menunggu tindakan','warn']].map(([l,v,s,c],i)=>`<div class="card kpi" data-i="${i}" tabindex="0"><small>${l}</small><b>${v}</b><em style="color:var(--${c==='b-b'?'blue2':c})">${s}</em></div>`).join('')}
  </div>
  <div class="g row2" style="margin-top:16px">
   <div class="g" style="gap:16px;align-content:start">
@@ -419,9 +421,8 @@ function vDash(){
    <div class="leg" style="margin-top:8px"><span><i style="background:var(--blue)"></i>Rejection List</span><span><i style="background:var(--mentari)"></i>Negative List</span></div></div>
   </div>
   <div class="card"><div class="ch"><div><h2>Distribusi kategori</h2><p>Kategori dan subkategori · klik untuk membuka datanya</p></div></div>
-   ${ALLCATS.map(c=>{const subs=SUBC[c].filter(x=>ROLE.scope.includes(x));if(!subs.length)return '';const t=subs.reduce((a,x)=>a+TOT[x],0);
-    return `<div class="bar" data-k="${c}" tabindex="0" style="padding-top:10px"><div class="bl"><span><b>${c}</b> <small style="color:var(--mute)">· key ID Watchlist</small></span><b>${fmt(t)}</b></div></div>`+(c==='Delisting Akhir'?'':subs.map(x=>`<div class="bar" data-c="${x}" tabindex="0" style="padding-left:12px"><div class="bl"><span style="color:var(--mute)">${x}</span><b style="font-weight:500">${fmt(TOT[x])}</b></div><div class="bt"><i style="width:${TOT[x]/44110*100}%;${c==='Negative List'?'background:var(--mentari)':''}"></i></div></div>`).join(''))}).join('')}
-   <p class="note">Delisting Akhir berada di luar Rejection List dan Negative List, tidak ikut patching.</p></div>
+   ${CATS.map(c=>{const subs=SUBC[c].filter(x=>ROLE.scope.includes(x));if(!subs.length)return '';const t=subs.reduce((a,x)=>a+TOT[x],0);
+    return `<div class="bar" data-k="${c}" tabindex="0" style="padding-top:10px"><div class="bl"><span><b>${c}</b> <small style="color:var(--mute)">· key ID Watchlist</small></span><b>${fmt(t)}</b></div></div>`+(c==='Delisting Akhir'?'':subs.map(x=>`<div class="bar" data-c="${x}" tabindex="0" style="padding-left:12px"><div class="bl"><span style="color:var(--mute)">${x}</span><b style="font-weight:500">${fmt(TOT[x])}</b></div><div class="bt"><i style="width:${TOT[x]/44110*100}%;${c==='Negative List'?'background:var(--mentari)':''}"></i></div></div>`).join(''))}).join('')}</div>
  </div>
  <div class="g row2" style="margin-top:16px">
   <div class="card"><div class="ch"><h2>Aktivitas terbaru</h2><div class="sp"></div><button class="link" id="toAudit">Lihat audit trail →</button></div>
@@ -435,7 +436,7 @@ function vDash(){
    <p class="note">Lead time rata-rata pengajuan → CSV siap patching: <b>0,8 hari</b> (target &lt; 1 hari)</p></div>
  </div>`;
  const KF=[{},{cat:'Rejection List'},{cat:'Negative List'},{cat:'Delisting Akhir'}];
- document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{const i=+k.dataset.i;if(i>=4)return go(navOK('appr')?'appr':'mysub');resetF();if(KF[i].cat)F.cat=new Set([KF[i].cat]);go('wdm')});
+ document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{const i=+k.dataset.i;if(i>=3)return go(navOK('appr')?'appr':'mysub');resetF();if(KF[i].cat)F.cat=new Set([KF[i].cat]);go('wdm')});
  document.querySelectorAll('.bar[data-c]').forEach(b=>b.onclick=()=>{resetF();F.sub=new Set([b.dataset.c]);go('wdm')});document.querySelectorAll('.bar[data-src]').forEach(b=>b.onclick=()=>{resetF();F.src=new Set([b.dataset.src]);go('wdm')});document.querySelectorAll('.bar[data-k]').forEach(b=>b.onclick=()=>{resetF();F.cat=new Set([b.dataset.k]);go('wdm')});
  $('#toAudit').onclick=()=>go('audit');
  $('#per').onclick=e=>{const b=e.target.closest('button');if(b){period=b.dataset.p;vDash()}};
@@ -487,7 +488,8 @@ function bindChips(rerender){
  const r=$('#rst');if(r)r.onclick=()=>{resetF();rerender()};
 }
 function vWdm(){
- $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Watchlist Data Management</h1><p class="sub" style="margin:0" id="wsub"></p></div>
+ if(entOpen&&ENT.find(x=>x.id===entOpen))return entFull();entOpen=null;
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Watchlist Data Management</h1></div>
   <div class="tabs" id="vt"><button data-v="item" class="${wv==='item'?'on':''}">Item View</button><button data-v="detail" class="${wv==='detail'?'on':''}">Detail View</button></div>
   <button class="btn" id="exp">${ic('dl')}Export</button></div>
   <div class="card"><div class="bar2"><label class="search">${ic('search')}<input id="q" placeholder="Cari nama, alias, ID Watchlist, NIK, CIF, Kode Dugaan…" value="${esc(q)}"></label></div>
@@ -497,33 +499,52 @@ function vWdm(){
  $('#exp').onclick=exportModal;
  wdmTable();
 }
+const DCOLS=['ID WATCHLIST','KATEGORI','SUBKATEGORI','PRIMARY KEY','NAMA','ALIAS NAMA','NIK','KODE DUGAAN','CIF','NO. REKENING','TEMPAT LAHIR','TANGGAL LAHIR','ALAMAT','KEWARGANEGARAAN','SUMBER DATA','NO. SURAT','TGL DILAPORKAN','PIC GROUP','STATUS'];
+function combos(e){const L=live(e).length?live(e):e.vars,u=f=>[...new Map(L.map(v=>[f(v),v])).values()];
+ const N=u(v=>v.nama),T=u(v=>+v.tgl),P=u(v=>v.tempat),A=u(v=>v.alamat),out=[];
+ N.forEach(n=>T.forEach(t=>P.forEach(p=>A.forEach(a=>out.push({nama:n.nama,alias:n.alias,tgl:t.tgl,tempat:p.tempat,alamat:a.alamat,src:[...new Set([n.src,t.src,p.src,a.src])].join(', '),ref:[...new Set([n.ref,t.ref,p.ref,a.ref])].join(', '),tglLapor:[n,t,p,a].reduce((m,v)=>v.tglLapor>m?v.tglLapor:m,n.tglLapor)})))));return out}
+function entRowHTML(e,v,idx,lab){const kd=keyOf(e)==='Kode Dugaan';return `<tr class="${hlId===e.id?'hl':''}"><td class="rn">${idx}</td><td><b style="color:var(--blue2)">${e.id}</b>${lab?` <small style="color:var(--mute)">${lab}</small>`:''}</td><td>${e.cat}</td><td>${esc(e.sub)}</td><td>${esc(e.key)}</td><td>${esc(v.nama)}</td>${nul(v.alias)}${nul(e.nik)}${nul(kd?e.key:null)}${nul(e.cif)}${nul(e.rek)}${nul(v.tempat)}<td>${dstr(v.tgl)}</td>${nul(v.alamat)}${nul(e.kwn)}<td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${dstr(v.tglLapor)}</td><td>${esc(e.unit)}</td><td>${stBadge(v.del?'Delisted':e.status)}</td></tr>`}
+function entTable(e,mode,maxH){const R=mode==='var'?e.vars.map((v,j)=>[v,'v'+(j+1)]):combos(e).map((v,j)=>[v,'k'+(j+1)]);
+ return `<div class="tw" style="${maxH?'max-height:'+maxH:'max-height:none'}"><table class="x"><thead><tr><th class="rn">#</th>${DCOLS.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${R.map(([v,l],i)=>entRowHTML(e,v,i+1,R.length>1?l:'')).join('')}</tbody></table></div>`}
+function entActions(e){const os=openSub(e);return roleKey==='checker'||os?'':[e.cat!=='Delisting Akhir'&&e.status!=='Delisted'&&!e.restored?`<button class="btn sm" data-sub="update">${ic('in')}Ajukan perubahan</button>`:'',canDelist(e)?`<button class="btn sm dan" data-sub="delist">Ajukan delisting</button>`:'',canRestore(e)?`<button class="btn sm" data-sub="react">↩ Kembalikan ke Rejection List</button>`:''].join('')}
+let entOpen=null,emode='comb';
+function entFull(){const e=ENT.find(x=>x.id===entOpen);const n=emode==='var'?e.vars.length:combos(e).length;
+ $('#view').innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><button class="btn" id="eback">← Kembali</button><span style="font-size:13px;color:var(--mute)">Watchlist Data Management / <b style="color:var(--ink)">${e.id}</b></span></div>
+ <div class="card"><div class="ch" style="flex-wrap:wrap"><div><h2 style="font-size:20px">${esc(e.name)}</h2><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><span class="badge b-b">${e.id}</span>${catBadge(e.cat)}<span class="badge b-m">${esc(e.sub)}</span>${stBadge(e.status)}</div></div><div class="sp"></div><div style="display:flex;gap:8px;flex-wrap:wrap">${entActions(e)}</div></div>
+ <div class="bar2" style="margin-top:6px"><div class="tabs" id="emt"><button data-m="comb" class="${emode==='comb'?'on':''}">Combination</button><button data-m="var" class="${emode==='var'?'on':''}">Variation</button></div><span style="color:var(--mute);font-size:13px">${n} ${emode==='var'?'variasi':'kombinasi'}</span><div style="flex:1"></div><button class="btn sm" id="eexp">${ic('dl')}Export</button></div>
+ ${entTable(e,emode)}</div>`;
+ $('#eback').onclick=()=>{entOpen=null;vWdm()};
+ $('#emt').onclick=ev=>{const b=ev.target.closest('button');if(b){emode=b.dataset.m;entFull()}};
+ $('#eexp').onclick=()=>{const R=emode==='var'?e.vars:combos(e);showCsv(e.id+'_'+(emode==='var'?'variation':'combination')+'.csv',[DCOLS.join(';'),...R.map(v=>[e.id,e.cat,e.sub,e.key,v.nama,v.alias||'',e.nik||'',keyOf(e)==='Kode Dugaan'?e.key:'',e.cif||'',e.rek||'',v.tempat||'',isoD(v.tgl),v.alamat||'',e.kwn||'',v.src,v.ref,isoD(v.tglLapor),e.unit,e.status].join(';'))].join('\n'))};
+ document.querySelectorAll('#view [data-sub]').forEach(b=>b.onclick=()=>{subType=b.dataset.sub;pre=e.id;entOpen=null;go('input')});
+}
 function wdmTable(){
  $('#chips').innerHTML=chipBar();bindChips(wdmTable);
  let rows=filtered();
- $('#wsub').textContent=wv==='item'?'Satu baris = satu Master Entity per kategori. Klik baris untuk membuka detail.':'Database terpadu lintas kategori. Semua kolom selalu tampil; filter hanya menyaring baris.';
+ if(0)$('#wsub').textContent=wv==='item'?'Satu baris = satu Master Entity per kategori. Klik baris untuk membuka detail.':'Database terpadu lintas kategori. Semua kolom selalu tampil; filter hanya menyaring baris.';
  if(wv==='item'){
-  const cols=[['id','ID WATCHLIST'],['name','NAMA'],['key','PRIMARY KEY'],['cat','KATEGORI'],['sub','SUBKATEGORI'],['nv','VARIASI'],['status','STATUS'],['updated','LAST UPDATED']];
-  rows.forEach(e=>e.nv=e.vars.length);
+  const cols=[['id','ID WATCHLIST'],['name','NAMA'],['key','PRIMARY KEY'],['cat','KATEGORI'],['sub','SUBKATEGORI'],['nk','KOMBINASI'],['status','STATUS'],['updated','LAST UPDATED']];
+  rows.forEach(e=>e.nk=combos(e).length);
   rows.sort((a,b)=>(a[sort.k]>b[sort.k]?1:a[sort.k]<b[sort.k]?-1:0)*sort.d);
   const pages=Math.max(1,Math.ceil(rows.length/per));if(pg>pages)pg=pages;const sl=rows.slice((pg-1)*per,pg*per);
   $('#tbl').innerHTML=rows.length?`<div class="tw"><table class="x"><thead><tr>${cols.map(([k,l])=>`<th data-s="${k}">${l}<span class="ar">${sort.k===k?(sort.d>0?'▲':'▼'):'↕'}</span></th>`).join('')}<th>ACTION</th></tr></thead><tbody>
-   ${sl.map(e=>`<tr data-id="${e.id}" style="cursor:pointer"><td><b style="color:var(--blue2)">${e.id}</b></td><td>${esc(e.name)}</td><td><small style="color:var(--mute)">${keyOf(e)==='NIK'?'NIK':'KD'} ·</small> ${esc(e.key)}</td><td>${catBadge(e.cat)}</td><td>${esc(e.sub)}</td><td>${e.nv>1?`<span class="badge b-w">${e.nv} variasi</span>`:'<span style="color:var(--mute)">—</span>'}</td><td>${stBadge(e.status)}</td><td>${dstr(e.updated)}</td><td><button class="link" data-id="${e.id}">View Detail</button></td></tr>`).join('')}
+   ${sl.map(e=>`<tr data-id="${e.id}" style="cursor:pointer"><td><b style="color:var(--blue2)">${e.id}</b></td><td>${esc(e.name)}</td><td><small style="color:var(--mute)">${keyOf(e)==='NIK'?'NIK':'KD'} ·</small> ${esc(e.key)}</td><td>${catBadge(e.cat)}</td><td>${esc(e.sub)}</td><td class="num">${e.nk>1?`<b>${e.nk}</b>`:'1'}</td><td>${stBadge(e.status)}</td><td>${dstr(e.updated)}</td><td><button class="link" data-id="${e.id}">View Detail</button></td></tr>`).join('')}
    </tbody></table></div>`+pager(rows.length,'entitas'):emptyState();
   document.querySelectorAll('#tbl th[data-s]').forEach(th=>th.onclick=()=>{const k=th.dataset.s;sort=sort.k===k?{k,d:-sort.d}:{k,d:1};wdmTable()});
   document.querySelectorAll('#tbl tr[data-id]').forEach(tr=>tr.onclick=()=>entityDrawer(tr.dataset.id));
  }else{
-  const cols=['ID WATCHLIST','KATEGORI','SUBKATEGORI','PRIMARY KEY','NAMA','ALIAS NAMA','NIK','KODE DUGAAN','CIF','NO. REKENING','TEMPAT LAHIR','TANGGAL LAHIR','ALAMAT','KEWARGANEGARAAN','SUMBER DATA','NO. SURAT','TGL DILAPORKAN','PIC GROUP','STATUS','KETERANGAN DELISTING'];
+  const cols=DCOLS;
   const flat=rows.flatMap(e=>e.vars.map((v,j)=>({e,v,j})));
   const pages=Math.max(1,Math.ceil(flat.length/per));if(pg>pages)pg=pages;const sl=flat.slice((pg-1)*per,pg*per);
   $('#tbl').innerHTML=flat.length?`<div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
-  ${sl.map(({e,v,j},i)=>{const kd=keyOf(e)==='Kode Dugaan';return `<tr class="${hlId===e.id?'hl':''}"><td class="rn">${(pg-1)*per+i+1}</td><td><b style="color:var(--blue2)">${e.id}</b>${e.vars.length>1?` <small style="color:var(--mute)">v${j+1}</small>`:''}</td><td>${e.cat}</td><td>${esc(e.sub)}</td><td>${esc(e.key)}</td><td>${esc(v.nama)}</td>${nul(v.alias)}${nul(e.nik)}${nul(kd?e.key:null)}${nul(e.cif)}${nul(e.rek)}${nul(v.tempat)}<td>${dstr(v.tgl)}</td>${nul(v.alamat)}${nul(e.kwn)}<td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${dstr(v.tglLapor)}</td><td>${esc(e.unit)}</td><td>${stBadge(v.del?'Delisted':e.status)}</td>${nul(v.del?'Didelisting ke '+(ENT.find(x=>x.origin===e.id&&x.vars.some(y=>y.origVid===v.vid))?.id||'Negative List'):e.cat==='Delisting Akhir'?'Delisting Akhir':v.orig?'Delisting dari '+e.origin:null)}</tr>`}).join('')}
+  ${sl.map(({e,v,j},i)=>entRowHTML(e,v,(pg-1)*per+i+1,e.vars.length>1?'v'+(j+1):'')).join('')}
   </tbody></table></div>`+pager(flat.length,'baris'):emptyState();
  }
  bindPager(wdmTable);
 }
 function emptyState(){return `<div class="empty">${ic('search')}<p><b>Tidak ada data yang cocok</b><br>Coba ubah kata kunci atau filter.</p><button class="btn" onclick="void 0" id="rst2">Reset filter</button></div>`}
 function pager(total,unit){const pages=Math.max(1,Math.ceil(total/per));let b=[];for(let i=1;i<=pages;i++)if(i===1||i===pages||Math.abs(i-pg)<=1)b.push(i);else if(b[b.length-1]!=='…')b.push('…');
- return `<div class="pg"><span>Menampilkan ${fmt((pg-1)*per+1)}–${fmt(Math.min(pg*per,total))} dari ${fmt(total)} ${unit} <small>(subset data contoh)</small></span><div class="pb">Rows <select id="per">${[10,25,50].map(n=>`<option ${n===per?'selected':''}>${n}</option>`).join('')}</select>
+ return `<div class="pg"><span>Menampilkan ${fmt((pg-1)*per+1)}–${fmt(Math.min(pg*per,total))} dari ${fmt(total)} ${unit}</span><div class="pb">Rows <select id="per">${[10,25,50].map(n=>`<option ${n===per?'selected':''}>${n}</option>`).join('')}</select>
  <button data-g="${pg-1}" ${pg===1?'disabled':''}>‹</button>${b.map(x=>x==='…'?'<span>…</span>':`<button data-g="${x}" class="${x===pg?'on':''}">${x}</button>`).join('')}<button data-g="${pg+1}" ${pg===pages?'disabled':''}>›</button></div></div>`}
 function bindPager(fn){document.querySelectorAll('.pg [data-g]').forEach(b=>b.onclick=()=>{pg=+b.dataset.g;fn()});const s=$('#per');if(s)s.onchange=e=>{per=+e.target.value;pg=1;fn()};const r=$('#rst2');if(r)r.onclick=()=>{resetF();fn()}}
 
@@ -531,25 +552,20 @@ const canDelist=e=>e.cat!=='Delisting Akhir'&&e.status!=='Delisted'&&!e.restored
 const canRestore=e=>!!e.origin&&!e.restored&&e.status==='Active'&&roleKey==='aml';
 function openSub(e){return SUBS.find(s=>s.apply&&s.apply.id===e.id&&!['Approved'].includes(s.status))}
 function entityDrawer(id){
- const e=ENT.find(x=>x.id===id);const aml=roleKey==='aml',os=openSub(e);
- const attrs=['nama','alamat'].map(a=>{const vals=[...new Map(e.vars.map(v=>[v[a],v])).values()];return {a,vals}});
- openDrawer(`<div class="dh"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><small style="color:var(--mute);font-size:11px">ENTITY DETAIL</small><h2 style="font-size:18px;margin:2px 0 6px">${esc(e.name)}</h2>
-  <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-b">${e.id}</span>${catBadge(e.cat)}${stBadge(e.status)}${os?'<span class="badge b-w">Perubahan diajukan</span>':''}</div></div><button class="ib" id="dx" aria-label="Tutup">${ic('x')}</button></div></div>
+ const e=ENT.find(x=>x.id===id),os=openSub(e),nk=combos(e).length;
+ openDrawer(`<div class="dh"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div><small style="color:var(--mute);font-size:11px">ENTITY DETAIL</small><h2 style="font-size:18px;margin:2px 0 6px">${esc(e.name)}</h2>
+  <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-b">${e.id}</span>${catBadge(e.cat)}${stBadge(e.status)}${os?'<span class="badge b-w">Perubahan diajukan</span>':''}</div></div><button class="ib" id="dx" aria-label="Tutup">${ic('x')}</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm pri" id="ofd">${ic('link')}Open Full Detail View</button>${entActions(e)}</div></div>
  <div class="db">
-  ${os?`<div class="alert w" style="margin-top:14px">${ic('hist')}<span><b>${os.type} sedang diproses: ${os.id}</b>Status ${esc(os.status)}. Data di bawah belum berubah sampai pengajuan disetujui.</span></div>`:''}
-  <div class="sec"><h3>${ic('user')}Entity Information</h3><dl class="kv"><dt>ID Watchlist</dt><dd>${e.id}</dd><dt>Kategori</dt><dd>${e.cat}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}${e.prevSub?' <small style="color:var(--mute)">(sebelumnya '+esc(e.prevSub)+')</small>':''}</dd>${e.origin?`<dt>Asal Rejection List</dt><dd><button class="link" style="padding:0" data-go-ent="${e.origin}">${e.origin}</button>${e.restored?' · sudah dikembalikan':''}</dd>`:''}<dt>Primary key (${keyOf(e)})</dt><dd>${esc(e.key)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>PIC Group</dt><dd>${esc(e.unit)}</dd><dt>Dibuat</dt><dd>${dstr(e.created)}</dd><dt>Terakhir diubah</dt><dd>${dstr(e.updated)}</dd></dl></div>
-  <div class="sec"><h3>${ic('db')}Attributes &amp; Variations</h3>${e.vars.length>1?`<div class="alert w">${ic('warn')}<span><b>Ada ${e.vars.length} variasi atribut</b>Key sama dalam kategori yang sama. Variasi dipertahankan beserta sumbernya.</span></div>`:''}
-   ${e.vars.some(v=>v.del)?`<div class="alert i">${ic('db')}<span><b>${e.vars.filter(v=>v.del).length} variasi sudah didelisting</b>Variasi tersebut sudah tercatat di Negative List.</span></div>`:''}${attrs.map(({a,vals})=>`<div class="var"><div class="vh"><b style="color:var(--ink)">${a==='nama'?'Nama':'Alamat'}</b><span>${vals.length} variasi</span></div><ul>${vals.map(v=>`<li><span style="${v.del?'text-decoration:line-through;color:var(--mute)':''}">${esc(v[a])}</span><small>${esc(v.src)}${v.del?' · delisted':''}</small></li>`).join('')}</ul></div>`).join('')}
-   <div class="var"><div class="vh"><b style="color:var(--ink)">Tempat / Tanggal lahir</b><span>1 nilai</span></div><ul><li><span>${esc(e.vars[0].tempat)}, ${dstr(e.vars[0].tgl)}</span><small>${esc(e.vars[0].src)}</small></li></ul></div></div>
-  <div class="sec"><h3>${ic('file')}Source &amp; Provenance</h3>${e.vars.map((v,i)=>`<dl class="kv" style="margin-bottom:10px"><dt>Sumber ${i+1}</dt><dd>${esc(v.src)}</dd><dt>No. surat / referensi</dt><dd>${esc(v.ref)}</dd><dt>Tanggal dilaporkan</dt><dd>${dstr(v.tglLapor)}</dd></dl>`).join('')}</div>
-  <div class="sec"><h3>${ic('hist')}Activity History</h3><div class="tl">${[...e.hist].reverse().map(h=>`<div><b style="font-weight:500">${esc(h.a)}</b><small>${dstr(h.t)} · ${esc(h.u)}</small><small>${esc(h.r)}</small></div>`).join('')}</div></div>
- </div>
- <div class="df"><button class="btn pri" id="ofd">${ic('link')}Open Full Detail View</button>
-  ${roleKey==='checker'||os?'':[e.cat!=='Delisting Akhir'&&e.status!=='Delisted'&&!e.restored?`<button class="btn" data-sub="update">Ajukan perubahan</button>`:'',canDelist(e)?`<button class="btn dan" data-sub="delist">Ajukan delisting</button>`:'',canRestore(e)?`<button class="btn" data-sub="react">↩ Kembalikan ke Rejection List</button>`:''].join('')}
-  <p class="note" style="width:100%;margin:2px 0 0">Data tidak bisa diubah langsung. Semua perubahan diajukan lewat menu Submit Data dan melalui approval.</p></div>`);
+  ${os?`<div class="alert w" style="margin-top:14px">${ic('hist')}<span><b>${os.type} sedang diproses: ${os.id}</b>Status ${esc(os.status)}.</span></div>`:''}
+  <div class="sec"><h3>${ic('user')}Entity Information</h3><dl class="kv"><dt>ID Watchlist</dt><dd>${e.id}</dd><dt>Kategori</dt><dd>${e.cat}</dd><dt>Subkategori</dt><dd>${esc(e.sub)}</dd>${e.origin?`<dt>Asal Rejection List</dt><dd><button class="link" style="padding:0" data-go-ent="${e.origin}">${e.origin}</button></dd>`:''}<dt>Primary key (${keyOf(e)})</dt><dd>${esc(e.key)}</dd><dt>CIF</dt><dd>${e.cif?esc(e.cif):'<span style="color:var(--null)">NULL</span>'}</dd><dt>PIC Group</dt><dd>${esc(e.unit)}</dd><dt>Dibuat</dt><dd>${dstr(e.created)}</dd><dt>Terakhir diubah</dt><dd>${dstr(e.updated)}</dd></dl></div>
+  <div class="sec"><h3>${ic('db')}Attributes &amp; Variations <span class="badge b-m" style="margin-left:auto">${nk} kombinasi</span></h3>${entTable(e,'comb','300px')}</div>
+  <div class="sec"><h3>${ic('file')}Source &amp; Provenance</h3><div class="tw" style="max-height:none"><table class="x"><thead><tr><th class="rn">#</th><th>SUMBER DATA</th><th>NO. SURAT / REFERENSI</th><th>TGL DILAPORKAN</th><th>NAMA</th><th>STATUS</th></tr></thead><tbody>${e.vars.map((v,i)=>`<tr><td class="rn">${i+1}</td><td>${esc(v.src)}</td><td>${esc(v.ref)}</td><td>${dstr(v.tglLapor)}</td><td>${esc(v.nama)}</td><td>${stBadge(v.del?'Delisted':e.status)}</td></tr>`).join('')}</tbody></table></div></div>
+  <div class="sec"><h3>${ic('hist')}Activity History</h3><div class="tw" style="max-height:none"><table class="x"><thead><tr><th>WAKTU</th><th>USER</th><th>AKTIVITAS</th><th>KETERANGAN</th><th>STATUS</th></tr></thead><tbody>${[...e.hist].reverse().map(h=>`<tr><td>${dstr(h.t)} ${h.t.toTimeString().slice(0,5)}</td><td>${esc(h.u)}</td><td><span class="badge ${/Delist/.test(h.a)?'b-e':/Approv|Dikembalikan/.test(h.a)?'b-ok':'b-b'}">${esc(h.a)}</span></td><td style="white-space:normal;min-width:200px">${esc(h.r)}</td><td><span class="badge b-ok">Berhasil</span></td></tr>`).join('')}</tbody></table></div></div>
+ </div>`);
  $('#dx').onclick=closeDrawer;
- $('#ofd').onclick=()=>{wv='detail';resetF();q=e.id;hlId=e.id;go('wdm')};
- document.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{subType=b.dataset.sub;pre=e.id;go('input')});
+ $('#ofd').onclick=()=>{entOpen=e.id;emode='comb';closeDrawer();vWdm();$('#view').scrollTop=0};
+ document.querySelectorAll('#drawer [data-sub]').forEach(b=>b.onclick=()=>{subType=b.dataset.sub;pre=e.id;go('input')});
  document.querySelectorAll('[data-go-ent]').forEach(b=>b.onclick=()=>entityDrawer(b.dataset.goEnt));
 }
 function exportModal(){
@@ -600,7 +616,7 @@ function edDraw(){const e=ENT.find(x=>x.id===EDIT.id),kd=keyOf(e)==='Kode Dugaan
  ${EDIT.vars.map((w,i)=>{const v=e.vars.find(x=>x.vid===w.vid);return `<tr><td class="rn">${i+1}</td>${VF.slice(0,5).map(([k])=>`<td class="${ch('Variasi '+(i+1),k)}">${inp('v.'+i+'.'+k,w[k],k==='tgl'?'date':'')}</td>`).join('')}${lk(v.src,'provenance')}<td class="${ch('Variasi '+(i+1),'ref')}">${inp('v.'+i+'.ref',w.ref)}</td>${lk(dstr(v.tglLapor),'provenance')}<td></td></tr>`}).join('')}
  ${e.vars.filter(v=>v.del).map(v=>`<tr style="opacity:.55"><td class="rn">—</td><td colspan="5"><s>${esc(v.nama)} · ${esc(v.alamat)}</s> <small>(sudah didelisting)</small></td>${lk(v.src)}${lk(v.ref)}${lk(dstr(v.tglLapor))}<td></td></tr>`).join('')}
  ${EDIT.add.map((a,i)=>`<tr class="newv"><td class="rn">+${i+1}</td>${VF.slice(0,5).map(([k])=>`<td>${inp('a.'+i+'.'+k,a[k],k==='tgl'?'date':'')}</td>`).join('')}<td><select class="ci" data-p="a.${i}.src">${SRC[EDIT.ent.sub].map(z=>`<option ${z===a.src?'selected':''}>${esc(z)}</option>`).join('')}</select></td><td>${inp('a.'+i+'.ref',a.ref)}</td><td class="lk">Hari ini</td><td><button class="link" data-rm="${i}" title="Hapus baris">${ic('x')}</button></td></tr>`).join('')}
- </tbody></table></div><p class="note">Variasi baru boleh memakai sumber dan no. surat yang sama dengan variasi lain. Menghapus variasi dilakukan lewat Delisting.</p>`;
+ </tbody></table></div>`;
  const box=$('#edg');
  box.onchange=box.oninput=ev=>{const p=ev.target.dataset.p;if(!p)return;const [g,a,b]=p.split('.');if(g==='ent')EDIT.ent[a]=ev.target.value;else (g==='v'?EDIT.vars:EDIT.add)[+a][b]=ev.target.value;
   if(ev.type==='change'){const pos=ev.target.selectionStart;edDraw();const n=box.querySelector(`[data-p="${p}"]`);if(n&&n.type==='text'){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}}else{const C=edChanges();box.querySelector('.ch .badge').textContent=C.length+' perubahan';ev.target.closest('td').classList.toggle('chg',g!=='a'&&C.some(c=>c.k===(g==='ent'?a:b)&&(g==='ent'?c.lvl==='Entitas':c.lvl==='Variasi '+(+a+1))))}};
@@ -740,9 +756,9 @@ function vSubs(mode){
  const f=my?msf:asf;
  const test=(s,k)=>k==='all'||(k==='prog'?/Menunggu|Review/.test(s.status):k==='need'?needsMe(s):s.status===k);
  const list=base.filter(s=>test(s,f));
- $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>${my?'My Submission':'Approval'}</h1><p class="sub" style="margin:0">${my?'Draft dan pengajuan Anda yang sedang diproses. Pengajuan yang sudah disetujui pindah ke riwayat Approval.':'Pengajuan yang menunggu persetujuan Anda (Maker → Checker → Signer → AML Review) dan yang sudah disetujui.'} Login sebagai <b>${ROLE.short}</b>.</p></div>${my?`<button class="btn pri" id="nw">${ic('in')}Submit Data</button>`:''}</div>
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>${my?'My Submission':'Approval'}</h1><p class="sub" style="margin:0">${my?'Draft dan pengajuan Anda yang sedang diproses. Pengajuan yang sudah disetujui pindah ke riwayat Approval.':'Pengajuan yang menunggu persetujuan Anda (Maker → Checker → Signer → AML Review) dan yang sudah disetujui.'}</p></div>${my?`<button class="btn pri" id="nw">${ic('in')}Submit Data</button>`:''}</div>
  <div class="bar2">${Object.entries(groups).map(([k,l])=>{const n=base.filter(s=>test(s,k)).length;return `<span class="chip ${f===k?'act':''}" data-sf="${k}">${l} <em class="badge ${k==='need'||k==='Dikembalikan'?'b-w':'b-m'}">${n}</em></span>`}).join('')}</div>
- <div class="card">${list.length?`<div class="tw"><table class="x"><thead><tr><th>ID PENGAJUAN</th><th>JUDUL</th><th>JENIS</th><th>UNIT</th><th>MAKER</th><th>RECORD</th><th>VALIDASI</th><th>TANGGAL</th><th>STATUS</th><th>AKSI</th></tr></thead><tbody>${list.map(s=>`<tr data-s="${s.id}" style="cursor:pointer"><td><b style="color:var(--blue2)">${s.id}</b></td><td style="white-space:normal;min-width:180px">${esc(s.title)}</td><td>${esc(s.type)}</td><td>${esc(s.unit)}</td><td>${esc(s.maker)}</td><td class="num">${fmt(s.n)}</td><td>${s.err?`<span class="badge b-e">${s.err} error</span> `:''}${s.warn?`<span class="badge b-w">${s.warn} warning</span>`:''}${!s.err&&!s.warn?'<span class="badge b-ok">Valid</span>':''}</td><td>${dstr(s.created)}</td><td>${sBadge(s.status)}</td><td><button class="btn sm ${needsMe(s)&&!my?'pri':''}" data-open="${s.id}">${needsMe(s)&&!my?'Review':'Lihat detail'} →</button></td></tr>`).join('')}</tbody></table></div><p class="note">${list.length} pengajuan. Klik baris atau tombol untuk membuka detail lengkap.</p>`:`<div class="empty">${ic('ok')}<p>${my?'Tidak ada pengajuan di filter ini.':f==='need'?'Tidak ada yang menunggu approval Anda.':'Belum ada pengajuan yang disetujui.'}</p></div>`}</div>`;
+ <div class="card">${list.length?`<div class="tw"><table class="x"><thead><tr><th>ID PENGAJUAN</th><th>JUDUL</th><th>JENIS</th><th>UNIT</th><th>MAKER</th><th>RECORD</th><th>VALIDASI</th><th>TANGGAL</th><th>STATUS</th><th>AKSI</th></tr></thead><tbody>${list.map(s=>`<tr data-s="${s.id}" style="cursor:pointer"><td><b style="color:var(--blue2)">${s.id}</b></td><td style="white-space:normal;min-width:180px">${esc(s.title)}</td><td>${esc(s.type)}</td><td>${esc(s.unit)}</td><td>${esc(s.maker)}</td><td class="num">${fmt(s.n)}</td><td>${s.err?`<span class="badge b-e">${s.err} error</span> `:''}${s.warn?`<span class="badge b-w">${s.warn} warning</span>`:''}${!s.err&&!s.warn?'<span class="badge b-ok">Valid</span>':''}</td><td>${dstr(s.created)}</td><td>${sBadge(s.status)}</td><td><button class="btn sm ${needsMe(s)&&!my?'pri':''}" data-open="${s.id}">${needsMe(s)&&!my?'Review':'Lihat detail'} →</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">${ic('ok')}<p>${my?'Tidak ada pengajuan di filter ini.':f==='need'?'Tidak ada yang menunggu approval Anda.':'Belum ada pengajuan yang disetujui.'}</p></div>`}</div>`;
  document.querySelectorAll('[data-sf]').forEach(c=>c.onclick=()=>{my?msf=c.dataset.sf:asf=c.dataset.sf;vSubs(mode)});
  document.querySelectorAll('tr[data-s]').forEach(c=>c.onclick=()=>{subOpen=selSub=c.dataset.s;sdq='';sdf='all';sdpg=1;vSubs(mode);$('#view').scrollTop=0});
  const nw=$('#nw');if(nw)nw.onclick=()=>{subType='new';go('input')};
@@ -791,7 +807,7 @@ function applySub(s){const a=s.apply;if(!a){if(s.rows&&s.rows[0]&&s.rows[0].iss!
    const v={vid:VID++,nama:r.nama,alias:r.alias||null,tempat:r.tempat_lahir||null,tgl:r.tgl_lahir?new Date(r.tgl_lahir+'T00:00'):new Date(1980,0,1),alamat:r.alamat||null,src:r.sumber,ref:r.no_surat,tglLapor:new Date()};
    const tgt=r.act==='var'?ENT.find(e=>e.id===r.actRef):r.act==='varrow'?made[+r.actRef.replace(/\D/g,'')-1]:null;
    if(tgt){tgt.vars.push(v);tgt.updated=new Date();tgt.hist.push({t:new Date(),a:'Variation added',u:'via '+s.id,r:'Dari '+r.sumber})}
-   else{const kd=keyOfSrc(r.sumber)==='Kode Dugaan';const ne={id:newEid(),cat:catOf(r.cat),sub:r.cat,status:'Active',unit:s.unit,key:kd?r.kode:r.nik,nik:r.nik||null,cif:r.cif||null,rek:r.rek||null,kwn:r.kwn||null,created:new Date(),updated:new Date(),vars:[v],name:r.nama,hist:[{t:new Date(),a:'Created',u:'via '+s.id,r:'Bulk upload '+s.title}]};ENT.push(ne);made[i]=ne}});
+   else{const kd=keyOfSrc(r.sumber)==='Kode Dugaan';const ne={id:newEid(r.cat,r.sumber),cat:catOf(r.cat),sub:r.cat,status:'Active',unit:s.unit,key:kd?r.kode:r.nik,nik:r.nik||null,cif:r.cif||null,rek:r.rek||null,kwn:r.kwn||null,created:new Date(),updated:new Date(),vars:[v],name:r.nama,hist:[{t:new Date(),a:'Created',u:'via '+s.id,r:'Bulk upload '+s.title}]};ENT.push(ne);made[i]=ne}});
    const nw=Object.keys(made).length;log('Data applied',s.id,nw+' entitas baru, '+(s.rows.filter(r=>r.st!=='Error').length-nw)+' variasi baru','Berhasil')}return}
  if(a.kind==='master'){const d=a.data;if(d.mt==='src'){(SRC[d.c]||(SRC[d.c]=[])).push(d.n)}else{const c=SUBC[d.c]?d.c:catOf(d.c);SUBC[c].push(d.n);SRC[d.n]=[]}SOURCES=[...new Set(Object.values(SRC).flat())];return}
  const e=ENT.find(x=>x.id===a.id);if(!e)return;const d=a.data;
@@ -925,7 +941,7 @@ let aq='',aact='',apg=1,auser='',ast='',afrom='',ato='';
 function vAudit(){
  const acts=[...new Set(AUDIT.map(a=>a.act))].sort(),users=[...new Set(AUDIT.map(a=>a.user))].sort();
  const sel=(id,lbl,opts,v)=>`<select class="date" id="${id}" style="height:38px;border-radius:10px;max-width:220px"><option value="">${lbl}</option>${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
- $('#view').innerHTML=`<h1>Audit Trail</h1><p class="sub">Siapa melakukan apa, kapan, statusnya, dan nilai sebelum → sesudah. Tindakan Anda di prototipe ini ikut tercatat.</p>
+ $('#view').innerHTML=`<h1>Audit Trail</h1><p class="sub">Siapa melakukan apa, kapan, statusnya, dan nilai sebelum → sesudah.</p>
  <div class="card"><div class="bar2"><label class="search">${ic('search')}<input id="aq" placeholder="Cari objek, alasan, nilai…" value="${esc(aq)}"></label></div>
  <div class="bar2">${sel('au','Semua user',users,auser)}${sel('aa','Semua aktivitas',acts,aact)}${sel('as','Semua status',['Berhasil','Pending','Ditolak'],ast)}
  <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mute)">Dari <input type="date" class="date" id="af" value="${afrom}"> s/d <input type="date" class="date" id="ato" value="${ato}"></span>
@@ -983,8 +999,7 @@ function vMaster(){
  if(mTab==='dict'){head=['FIELD','LABEL','TIPE ATRIBUT','FORMAT','WAJIB DI SUBKATEGORI','STATUS'];rows=DICT.map(([k,l,t,f])=>({k,c:[k,l,t,f,(()=>{const w=allSubs.filter(x=>MAND[x].includes(k));return w.length===allSubs.length?'Semua':w.length?w.join(', '):'—'})()]}))}
  if(mTab==='user'){head=['USER','GROUP','SCOPE DATA','ROLE (AKSI)','STATUS'];rows=USERS.map(u=>({k:u.n,c:[u.n,u.g,u.sc,u.r]}))}
  $('#mb').innerHTML=`<div class="bar2"><label class="search" style="flex:0 1 360px">${ic('search')}<input id="mq" placeholder="Cari ${T[mTab].toLowerCase()}…"></label><div style="flex:1"></div>${aml?`<button class="btn pri" id="madd">${ic('in')}Tambah ${T[mTab]}</button>`:`<span class="lock">${ic('lock')}Hanya-baca</span>`}</div>
- <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}${aml?'<th>ACTION</th>':''}</tr></thead><tbody>${rows.map((r,i)=>`<tr data-r="${i}" data-txt="${esc(r.c.join(' ').toLowerCase())}">${r.c.map(v=>`<td style="white-space:normal;max-width:420px">${esc(v)}</td>`).join('')}<td>${stBadge(mst(r.k))}</td>${aml?`<td>${r.lock?'<span class="lock">'+ic('lock')+'Sistem</span>':`<button class="link" data-ed="${i}">Edit</button> <button class="link" data-tg="${i}" style="color:var(--${mst(r.k)==='Active'?'err':'ok'})">${mst(r.k)==='Active'?'Nonaktifkan':'Aktifkan'}</button>`}</td>`:''}</tr>`).join('')}</tbody></table></div>
- <p class="note">${rows.length} ${T[mTab].toLowerCase()}. ${mTab==='src'?'Sumber terikat ke satu subkategori.':mTab==='dict'?'Mandatory field diatur per subkategori.':'Item nonaktif tidak bisa dipilih di Submit Data, tapi data lamanya tetap tersimpan.'}</p>`;
+ <div class="tw"><table class="x"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}${aml?'<th>ACTION</th>':''}</tr></thead><tbody>${rows.map((r,i)=>`<tr data-r="${i}" data-txt="${esc(r.c.join(' ').toLowerCase())}">${r.c.map(v=>`<td style="white-space:normal;max-width:420px">${esc(v)}</td>`).join('')}<td>${stBadge(mst(r.k))}</td>${aml?`<td>${r.lock?'<span class="lock">'+ic('lock')+'Sistem</span>':`<button class="link" data-ed="${i}">Edit</button> <button class="link" data-tg="${i}" style="color:var(--${mst(r.k)==='Active'?'err':'ok'})">${mst(r.k)==='Active'?'Nonaktifkan':'Aktifkan'}</button>`}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
  $('#mq').oninput=e=>{const v=e.target.value.toLowerCase();document.querySelectorAll('#mb tr[data-txt]').forEach(t=>t.hidden=!t.dataset.txt.includes(v))};
  if(!aml)return;
  const done=(a,k,b)=>{log('Master data '+a,T[mTab],k,'Berhasil',b&&b!==k?[['Nama',b,k]]:null);toast(T[mTab]+' "'+k+'" '+a)};
