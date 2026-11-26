@@ -382,7 +382,7 @@ function renderNav(){
  $('#nav').innerHTML=NAV.filter(([k])=>navOK(k)).map(([k,i,t])=>`<a data-p="${k}" data-t="${t}" class="${page===k?'on':''}" tabindex="0">${ic(i)}<span>${t}</span>${cnt[k]?`<em class="badge b-w">${cnt[k]}</em>`:''}</a>`).join('');
  
 }
-$('#nav').onclick=e=>{const a=e.target.closest('a');if(a){subOpen=null;entOpen=null;go(a.dataset.p)}};
+$('#nav').onclick=e=>{const a=e.target.closest('a');if(a){subOpen=null;entOpen=null;uplOpen=null;go(a.dataset.p)}};
 $('#nav').onkeydown=e=>{if(e.key==='Enter'){const a=e.target.closest('a');if(a)go(a.dataset.p)}};
 let sideMode='exp';try{sideMode=localStorage.getItem('wl-side')||'exp'}catch(e){}
 function applySide(){const s=$('#side');s.classList.toggle('col',sideMode==='col');s.classList.toggle('hid',sideMode==='hid');
@@ -898,19 +898,8 @@ function subDetail(mode){
 }
 
 /* ================= UPLOAD WATCHLIST ================= */
-let upTab='hue',gen={};
 let PLOG=[{t:new Date(2026,9,9,9,5),type:'BA',per:'Oktober 2026',n:139412,by:'Sekar Sari Syaharani',no:'B. -AML/SPE/DVA/10/2026'},{t:new Date(2026,8,8,8,40),type:'BA',per:'September 2026',n:137950,by:'Sekar Sari Syaharani',no:'B. -AML/SPE/DVA/09/2026'}];
-const PST=['Diajukan','Checker AML','Signer AML','File siap','Upload dicatat','Checker upload','Signer upload'];
-const mkReq=(sys,per,y,m,d,n,ticket)=>{const b=new Date(y,m,d,8,10).getTime();return {id:'GEN-'+String(y).slice(2)+String(m+1).padStart(2,'0')+'-'+sys,sys,per,n,by:'Rina Anggraeni',chkBy:'Dewi Lestari',sgnBy:'Karina Shinta Utami',status:'Sudah diupload',ts:[new Date(b),new Date(b+H(.8)),new Date(b+H(1.6)),new Date(b+H(1.6)),new Date(b+H(5.2)),new Date(b+H(5.7)),new Date(b+H(6.3))],up:{t:new Date(b+H(5.2)),by:'Rina Anggraeni',ticket:'CR-'+ticket,rows:n,res:'Berhasil',note:'',chkBy:'Dewi Lestari',sgnBy:'Karina Shinta Utami'}}};
-let PREQ=[mkReq('HUE','September 2026',2026,8,7,137950,'2609-0412'),mkReq('IRIS','September 2026',2026,8,7,151004,'2609-0413'),mkReq('HUE','Oktober 2026',2026,9,8,139412,'2610-0388'),mkReq('IRIS','Oktober 2026',2026,9,8,152880,'2610-0389')];
-const PER='November 2026';const curReq=sys=>PREQ.filter(r=>r.sys===sys&&r.per===PER&&r.status!=='Ditolak').slice(-1)[0];
-const pBadge=x=>`<span class="badge ${x==='Sudah diupload'?'b-ok':x==='Ditolak'?'b-e':x==='Siap diupload'?'b-b':'b-w'}">${esc(x)}</span>`;
-const PWAIT={'Menunggu Checker':['aml_chk','Menunggu Signer','gen'],'Menunggu Signer':['aml_sgn','Siap diupload','gen'],'Upload menunggu Checker':['aml_chk','Upload menunggu Signer','up'],'Upload menunggu Signer':['aml_sgn','Sudah diupload','up']};
-function preqCard(sys){const L=PREQ.filter(r=>r.sys===sys).slice().reverse();const tm=d=>d?dstr(d)+' '+d.toTimeString().slice(0,5):'—';
- return `<div class="card" style="margin-top:16px"><div class="ch"><h2>Riwayat generate patching ${sys}</h2></div><div class="tw" style="max-height:320px"><table class="x"><thead><tr><th>ID</th><th>PERIODE</th><th>JUMLAH BARIS</th><th>DIAJUKAN</th><th>CHECKER AML</th><th>SIGNER AML</th><th>STATUS</th><th>WAKTU UPLOAD</th><th>DIUPLOAD OLEH</th><th>NO. TIKET / CR</th><th>HASIL UPLOAD</th><th>VERIFIKASI UPLOAD</th></tr></thead><tbody>${L.map(r=>`<tr><td><b style="color:var(--blue2)">${r.id}</b></td><td>${esc(r.per)}</td><td class="num">${fmt(r.n)}</td><td>${esc(r.by)}<br><small style="color:var(--mute)">${tm(r.ts[0])}</small></td><td>${r.ts[1]?esc(r.chkBy)+'<br><small style="color:var(--mute)">'+tm(r.ts[1])+'</small>':'—'}</td><td>${r.ts[2]?esc(r.sgnBy)+'<br><small style="color:var(--mute)">'+tm(r.ts[2])+'</small>':'—'}</td><td>${pBadge(r.status)}</td><td>${r.up?tm(r.up.t):'—'}</td><td>${r.up?esc(r.up.by):'—'}</td><td>${r.up?esc(r.up.ticket||'—'):'—'}</td><td>${r.up?`<span class="badge ${r.up.res==='Berhasil'?'b-ok':r.up.res==='Gagal'?'b-e':'b-w'}">${esc(r.up.res)}</span> <small style="color:var(--mute)">${fmt(r.up.rows)} baris</small>`:'—'}</td><td>${r.up&&r.ts[6]?esc(r.up.chkBy)+' · '+esc(r.up.sgnBy):r.up&&r.ts[5]?esc(r.up.chkBy)+' · <i>menunggu Signer</i>':r.up?'<i>menunggu Checker</i>':'—'}</td></tr>`).join('')}</tbody></table></div></div>`}
-function plogCard(type){const L=PLOG.filter(x=>x.type===type).sort((a,b)=>b.t-a.t);
- return `<div class="card" style="margin-top:16px"><div class="ch"><div><h2>Riwayat ${type==='BA'?'Berita Acara':'patching '+type}</h2></div></div>${L.length?`<div class="tw" style="max-height:280px"><table class="x"><thead><tr><th>WAKTU</th><th>PERIODE</th>${type==='BA'?'<th>NOMOR BA</th>':''}<th>JUMLAH ${type==='BA'?'DATA':'BARIS'}</th><th>DIBUAT OLEH</th><th>AKSI</th></tr></thead><tbody>${L.map((x,i)=>`<tr><td>${dstr(x.t)} ${x.t.toTimeString().slice(0,5)}</td><td>${esc(x.per)}</td>${type==='BA'?`<td>${esc(x.no||'—')}</td>`:''}<td class="num">${fmt(x.n)}</td><td>${esc(x.by)}</td><td><button class="link" data-pl="${PLOG.indexOf(x)}">${ic('dl')} Unduh ulang</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Belum ada riwayat.</div>'}</div>`}
-function bindPlog(){document.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{const x=PLOG[+b.dataset.pl];showCsv((x.type==='BA'?'BA_':'PATCH_'+x.type+'_')+x.per.replace(' ','_')+'.csv','PERIODE;JENIS;JUMLAH;DIBUAT_OLEH\n'+[x.per,x.type,x.n,x.by].join(';'))})}
+function plogCard(){return ''}function bindPlog(){}
 const D8=d=>d?isoD(d).replace(/-/g,''):'',DMY8=d=>{const x=D8(d);return x?x.slice(6,8)+x.slice(4,6)+x.slice(0,4):''},
  J7=d=>{if(!d)return '';const y=d.getFullYear(),n=Math.round((Date.UTC(y,d.getMonth(),d.getDate())-Date.UTC(y,0,1))/864e5)+1;return y+String(n).padStart(3,'0')},
  DMY6=d=>{const x=D8(d);return x?x.slice(6,8)+x.slice(4,6)+x.slice(2,4):''},U=v=>v?String(v).toUpperCase():'';
@@ -950,54 +939,94 @@ function cleanVal(sys,lbl,v){let x=base(v);if(sys==='hue')return x.replace(/[;"]
  return x}
 function loadXLSX(cb){if(window.XLSX)return cb();const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';sc.onload=cb;sc.onerror=()=>toast('Gagal memuat pembuat Excel. Periksa koneksi.');document.head.append(sc)}
 function dlXlsx(name,sheet,aoa){loadXLSX(()=>{try{const ws=XLSX.utils.aoa_to_sheet(aoa.map(r=>r.map(v=>String(v??''))));ws['!cols']=aoa[0].map((h,i)=>({wch:Math.min(45,Math.max(String(h).length,...aoa.slice(1,200).map(r=>String(r[i]??'').length))+2)}));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,sheet.slice(0,31));XLSX.writeFile(wb,name);toast('✓ Mengunduh '+name)}catch(e){toast('Unduhan diblokir di tampilan ini')}})}
-const cleanRow=(f,raw)=>raw.map((v,i)=>cleanVal(upTab,f.map[i],v));
+const cleanRow=(f,raw)=>raw.map((v,i)=>cleanVal(f.sep==='|'?'hue':'iris',f.map[i],v));
+/* ================= UPLOAD WATCHLIST (one process: generate -> files -> proof -> BA) ================= */
+const PER='November 2026',USTEP=['Ajukan Generate Patching','Generated File Patching','Submit Bukti Upload','Generated Berita Acara'];
+const USTAT={'Menunggu Checker':1,'Menunggu Signer':1,'Ditolak':1,'File siap':2,'Bukti menunggu Checker':3,'Bukti menunggu Signer':3,'Menunggu BA':4,'Selesai':5};
+const UWAIT={'Menunggu Checker':['aml_chk','Menunggu Signer','gen'],'Menunggu Signer':['aml_sgn','File siap','gen'],'Bukti menunggu Checker':['aml_chk','Bukti menunggu Signer','up'],'Bukti menunggu Signer':['aml_sgn','Menunggu BA','up']};
+const mkUpl=(per,y,m,d,n,no)=>{const b=new Date(y,m,d,8,10).getTime(),T=h=>new Date(b+H(h));return {id:'UPL-'+String(y).slice(2)+String(m+1).padStart(2,'0'),per,n,by:'Rina Anggraeni',status:'Selesai',
+ gen:{t:T(0),chkBy:'Dewi Lestari',chkT:T(.8),sgnBy:'Karina Shinta Utami',sgnT:T(1.6)},
+ up:{hue:{t:T(4.9),ticket:'CR-'+String(y).slice(2)+String(m+1).padStart(2,'0')+'-0412',rows:n,res:'Berhasil'},iris:{t:T(5.2),ticket:'CR-'+String(y).slice(2)+String(m+1).padStart(2,'0')+'-0413',rows:n,res:'Berhasil'},by:'Rina Anggraeni',t:T(5.3),chkBy:'Dewi Lestari',chkT:T(5.8),sgnBy:'Karina Shinta Utami',sgnT:T(6.4)},
+ ba:{no,t:T(7.1),by:'Sekar Sari Syaharani'}}};
+let UPL=[mkUpl('Oktober 2026',2026,9,8,139412,'B. -AML/SPE/DVA/10/2026'),mkUpl('September 2026',2026,8,7,137950,'B. -AML/SPE/DVA/09/2026')],uplOpen=null,uplStep=1,ufmt='hue-rej',upg=1,UPDRAFT={};
+const uBadge=x=>`<span class="badge ${x==='Selesai'?'b-ok':x==='Ditolak'?'b-e':x==='File siap'||x==='Menunggu BA'?'b-b':'b-w'}">${esc(x)}</span>`;
+const tmS=d=>d?dstr(d)+' '+d.toTimeString().slice(0,5):'—';
+const UFMTS=()=>[...PATCH.hue.map(f=>({...f,sys:'HUE',key:'hue-'+f.k})),...PATCH.iris.map(f=>({...f,sys:'IRIS',key:'iris-'+f.k}))];
+const uRows=()=>{const act=ENT.filter(e=>e.status==='Active'&&e.cat!=='Delisting Akhir');return act.flatMap(e=>combos(e).map(v=>({e,v})))};
+const uFname=f=>`PATCH_${f.sys}_${f.l.replace(/\W+/g,'_').toUpperCase()}_202611.${f.ext}`;
+const uClean=(f,raw)=>raw.map((v,i)=>cleanVal(f.sys.toLowerCase(),f.map[i],v));
 function vUpload(){
- const aml=roleKey==='aml';
- $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Upload Watchlist</h1></div>
- <div class="tabs" id="ut"><button data-t="hue" class="${upTab==='hue'?'on':''}">Generate Patching HUE</button><button data-t="iris" class="${upTab==='iris'?'on':''}">Generate Patching IRIS</button><button data-t="ba" class="${upTab==='ba'?'on':''}">Generate BA</button></div></div><div id="ub"></div>`;
- $('#ut').onclick=e=>{const b=e.target.closest('button');if(b){upTab=b.dataset.t;vUpload()}};
- if(!isAmlTeam()){$('#ub').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Hanya AML Group yang dapat mengakses menu ini.</b></p></div>`;return}
- if(upTab==='ba'){if(!aml){$('#ub').innerHTML=`<div class="card empty">${ic('lock')}<p><b>Generate BA dilakukan oleh AML Admin.</b></p></div>`;$('#ub').insertAdjacentHTML('beforeend',plogCard('BA'));bindPlog();return}baView();$('#ub').insertAdjacentHTML('beforeend',plogCard('BA'));bindPlog();return}
- const SYS=upTab.toUpperCase(),rq=curReq(SYS),act=ENT.filter(e=>e.status==='Active'&&e.cat!=='Delisting Akhir'),all=act.flatMap(e=>combos(e).map(v=>({e,v})));
- const F=PATCH[upTab],cur=F.find(x=>x.k===pfmt[upTab])||F[0],rowsOf=f=>all.filter(({e,v})=>f.f(e,v)),R=rowsOf(cur),total=all.length;
- const fname=f=>`PATCH_${SYS}_${f.l.replace(/\W+/g,'_').toUpperCase()}_202611.${f.ext}`;
- const st=rq?rq.status:null,stage=!rq?-1:{'Menunggu Checker':1,'Menunggu Signer':2,'Siap diupload':4,'Upload menunggu Checker':5,'Upload menunggu Signer':6,'Sudah diupload':7}[st];
- const tm=d=>d?dstr(d)+' '+d.toTimeString().slice(0,5):'';
- const steps=rq?`<div class="steps" style="margin-bottom:14px">${PST.map((l,i)=>{const t=rq.ts[i];return `<div class="st ${i<stage?'done':i===stage?'cur':''}" data-n="${i+1}">${l}${t?`<br><small style="font-weight:400;color:var(--mute)">${tm(t)}</small>`:''}</div>`}).join('')}</div>`:'';
- const preview=`<div class="bar2"><div class="tabs" id="pft">${F.map(f=>`<button data-f="${f.k}" class="${f===cur?'on':''}">${f.l} <small style="opacity:.7">${fmt(rowsOf(f).length)}</small></button>`).join('')}</div><div style="flex:1"></div><span style="font-size:12px;color:var(--mute)">${esc(fname(cur))} · ${cur.ext==='xlsx'?'Excel (.xlsx)':'CSV pemisah |'}</span></div>
-  <div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${cur.cols.map((c,i)=>`<th style="text-transform:none">${esc(c)}<br><span style="font-weight:400;letter-spacing:0;color:var(--blue2)">← ${esc(cur.map[i])}</span></th>`).join('')}</tr></thead><tbody>${R.slice(0,20).map(({e,v},i)=>{const raw=cur.row(e,v),cl=cleanRow(cur,raw);return `<tr><td class="rn">${i+1}</td>${cl.map((x,j)=>String(raw[j]??'')!==x?`<td class="cw" title="Dibersihkan dari: ${esc(raw[j])}">${esc(x)}</td>`:`<td>${esc(x)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>`;
- let foot='';
- const W=PWAIT[st],me=W&&roleKey===W[0],isChk=W&&W[0]==='aml_chk',upStage=W&&W[2]==='up';
- const apBtns=W?(me?`<button class="btn dan" id="prj">Tolak</button><button class="btn pri" id="pap">Setujui ${upStage?'catatan upload':'generate'} sebagai ${isChk?'Checker':'Signer'} AML</button>`:`<span class="lock">${ic('lock')}Menunggu ${isChk?'Checker':'Signer'} AML${upStage?' memverifikasi catatan upload':' · file belum bisa diunduh'}</span>`):'';
- if(W&&!upStage)foot=`<div class="pg"><span>${fmt(R.length)} baris di file ini · ${fmt(total)} baris total (${F.length} file)</span><div class="pb">${apBtns}</div></div>`;
- if(st==='Siap diupload'||st==='Sudah diupload'||upStage)foot=`<div class="pg"><span>${fmt(R.length)} baris di file ini · ${fmt(total)} baris total (${F.length} file)</span><div class="pb"><button class="btn" id="dl1">${ic('dl')}Unduh file ini</button><button class="btn ${st==='Siap diupload'&&aml?'':'pri'}" id="dla">${ic('dl')}Unduh semua (${F.length})</button>${st==='Siap diupload'&&aml?`<button class="btn pri" id="pup">${ic('up')}Catat upload</button>`:''}</div></div>${upStage?`<div class="pg" style="border-top:1px solid var(--line);margin-top:10px"><span>Verifikasi catatan upload</span><div class="pb">${apBtns}</div></div>`:''}
-  ${rq.up?`<div class="alert ${rq.up.res==='Berhasil'?'i':'w'}" style="margin-top:12px">${ic('ok')}<span><b>Diupload ${tm(rq.up.t)} oleh ${esc(rq.up.by)}${st==='Sudah diupload'?' · diverifikasi '+esc(rq.up.chkBy)+' & '+esc(rq.up.sgnBy):''}</b>${esc(rq.up.ticket||'')} · ${fmt(rq.up.rows)} baris · hasil ${esc(rq.up.res)}${rq.up.note?' · '+esc(rq.up.note):''}${rq.note?' · <b>Catatan penolakan:</b> '+esc(rq.note):''}</span></div>`:''}`;
- $('#ub').innerHTML=`<div class="card"><div class="ch"><div><h2>Generate Patching ${SYS} · ${PER}</h2><p>${rq?rq.id+' · diajukan '+esc(rq.by):'Belum diajukan'} · as-of ${dstr(today)}</p></div><div class="sp"></div>${rq?pBadge(st):''}<span class="lock">${ic('lock')}Format baku</span></div>
-  ${steps}${rq?preview+foot:`<div class="empty">${ic('file')}<p>Belum ada generate patching ${SYS} untuk ${PER}.<br><small>${F.length} file · ${F.map(f=>f.l).join(' · ')} · ${fmt(total)} baris</small></p>${aml?`<button class="btn pri" id="gn">Ajukan generate patching ${SYS}</button>`:`<span class="lock">${ic('lock')}Diajukan oleh AML Admin</span>`}</div>`}</div>`;
- $('#ub').insertAdjacentHTML('beforeend',preqCard(SYS));
- const pft=$('#pft');if(pft)pft.onclick=ev=>{const b=ev.target.closest('button');if(b){pfmt[upTab]=b.dataset.f;vUpload()}};
- const gn=$('#gn');if(gn)gn.onclick=()=>confirmDlg('Ajukan generate patching '+SYS+'?',`${F.length} file (${F.map(f=>f.l).join(', ')}) dari <b>${fmt(total)} baris</b> data Active per ${dstr(today)}. File dapat diunduh setelah disetujui Checker dan Signer AML.`,'Ajukan',()=>busy($('#gn'),'Membentuk file…',900,()=>{const r={id:'GEN-2611-'+SYS+(PREQ.some(x=>x.id==='GEN-2611-'+SYS)?'-'+PREQ.length:''),sys:SYS,per:PER,n:total,by:ROLE.name,status:'Menunggu Checker',ts:[new Date()]};PREQ.push(r);log('Generate patching diajukan',r.id,total+' baris','Pending');toast('✓ '+r.id+' diajukan ke Checker AML');vUpload()}));
- const pap=$('#pap');if(pap)pap.onclick=()=>{const nx=W[1];confirmDlg('Setujui '+(upStage?'catatan upload ':'')+rq.id+'?',`Status: <b>${st} → ${nx}</b>.${nx==='Siap diupload'?' File patching dapat diunduh setelah ini.':''}`,'Ya, setujui',()=>busy($('#pap'),'Memproses…',600,()=>{const k=stage;rq.ts[k]=new Date();if(k===2)rq.ts[3]=rq.ts[2];
-  if(upStage){isChk?rq.up.chkBy=ROLE.name:rq.up.sgnBy=ROLE.name}else{isChk?rq.chkBy=ROLE.name:rq.sgnBy=ROLE.name}rq.status=nx;rq.note=null;
-  log(upStage?'Catatan upload disetujui':'Generate patching disetujui',rq.id,(isChk?'Checker':'Signer')+' AML','Berhasil',[['Status',st,nx]]);toast('✓ '+rq.id+' → '+nx);vUpload()}))};
- const prj=$('#prj');if(prj)prj.onclick=()=>{openModal(`<h2>Tolak ${rq.id}</h2><div class="fld" style="margin-top:12px"><label>Alasan <i>*</i></label><textarea id="prr"></textarea></div><div class="mact"><button class="btn" data-x>Batal</button><button class="btn dan" id="prok">Tolak</button></div>`);$('#modal').querySelector('[data-x]').onclick=closeModal;
-  $('#prok').onclick=()=>{const v=$('#prr').value.trim();if(!v){$('#prr').closest('.fld').classList.add('bad');return}const nx=upStage?'Siap diupload':'Ditolak';rq.status=nx;rq.note=v;if(upStage){rq.ts.length=4}log(upStage?'Catatan upload ditolak':'Generate patching ditolak',rq.id,v,'Ditolak',[['Status',st,nx]]);closeModal();toast(upStage?'Catatan upload dikembalikan ke AML Admin':rq.id+' ditolak');vUpload()}};
- const pup=$('#pup');if(pup)pup.onclick=()=>{const now=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16);
-  openModal(`<h2>Catat upload ${rq.id}</h2><p class="sub" style="margin-top:4px">${SYS} · ${PER} · ${fmt(rq.n)} baris</p><form id="upf" novalidate><div class="fgrid">
-   <div class="fld"><label>Waktu upload <i>*</i></label><input type="datetime-local" name="t" value="${now}"></div><div class="fld"><label>Diupload oleh <i>*</i></label><input name="by" value="${esc(ROLE.name)}"></div>
-   <div class="fld"><label>No. tiket / CR</label><input name="ticket" placeholder="mis. CR-2611-0421"></div><div class="fld"><label>Jumlah baris terupload <i>*</i></label><input name="rows" type="number" min="0" value="${rq.n}"></div>
-   <div class="fld"><label>Hasil upload <i>*</i></label><select name="res"><option>Berhasil</option><option>Berhasil sebagian</option><option>Gagal</option></select></div></div>
-   <div class="fld"><label>Catatan</label><textarea name="note"></textarea></div><div class="mact"><button type="button" class="btn" data-x>Batal</button><button class="btn pri">Simpan</button></div></form>`);
-  $('#modal').querySelector('[data-x]').onclick=closeModal;
-  $('#upf').onsubmit=ev=>{ev.preventDefault();const f=ev.target;let ok=true;['t','by','rows'].forEach(n=>{const w=f[n].closest('.fld');w.classList.toggle('bad',!f[n].value.trim());if(!f[n].value.trim())ok=false});if(!ok)return;
-   rq.up={t:new Date(f.t.value),by:f.by.value.trim(),ticket:f.ticket.value.trim(),rows:+f.rows.value,res:f.res.value,note:f.note.value.trim()};rq.ts[4]=new Date();rq.status=rq.up.res==='Gagal'?'Siap diupload':'Upload menunggu Checker';rq.note=null;
-   log('Upload patching dicatat',rq.id,SYS+' · '+rq.up.res+' · '+rq.up.rows+' baris'+(rq.up.ticket?' · '+rq.up.ticket:''),rq.up.res==='Gagal'?'Ditolak':'Pending',[['Status','Siap diupload',rq.status]]);closeModal();toast(rq.up.res==='Gagal'?'Upload gagal dicatat; file tetap siap diupload ulang':'✓ Catatan upload '+rq.id+' diajukan ke Checker AML');vUpload()}};
- const body=f=>[f.cols.join(f.sep),...rowsOf(f).map(({e,v})=>cleanRow(f,f.row(e,v)).join(f.sep))].join('\r\n');
- const aoa=f=>[f.cols,...rowsOf(f).map(({e,v})=>cleanRow(f,f.row(e,v)))];
- const d1=$('#dl1');if(d1)d1.onclick=()=>cur.ext==='xlsx'?busy(d1,'Membuat Excel…',300,()=>{dlXlsx(fname(cur),cur.l,aoa(cur));setTimeout(vUpload,400)}):showCsv(fname(cur),body(cur));
- const da=$('#dla');if(da)da.onclick=()=>{let n=0;F.forEach((f,i)=>setTimeout(()=>{if(f.ext==='xlsx'){dlXlsx(fname(f),f.l,aoa(f));n++}else if(dlFile(fname(f),body(f),'text/csv;charset=utf-8'))n++;if(i===F.length-1)toast(n?'✓ Mengunduh '+n+' file':'Unduhan diblokir di tampilan ini')},i*350))};
+ if(!isAmlTeam()){$('#view').innerHTML=`<h1>Upload Watchlist</h1><div class="card empty">${ic('lock')}<p><b>Hanya AML Group yang dapat mengakses menu ini.</b></p></div>`;return}
+ if(uplOpen)return uplDetail();
+ const aml=roleKey==='aml',active=UPL.find(u=>u.per===PER&&u.status!=='Selesai'&&u.status!=='Ditolak');
+ $('#view').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px"><div style="flex:1"><h1>Upload Watchlist</h1></div>${aml?`<button class="btn pri" id="uplNew">${ic('in')}${active?'Lanjutkan '+active.id:'Ajukan Upload Watchlist'}</button>`:''}</div>
+ <div class="card"><div class="tw" style="max-height:none"><table class="x"><thead><tr><th>ID</th><th>PERIODE</th><th>TOTAL BARIS</th><th>TAHAP</th><th>STATUS</th><th>DIAJUKAN</th><th>GENERATE DISETUJUI</th><th>WAKTU UPLOAD</th><th>BUKTI DIVERIFIKASI</th><th>NO. BA</th><th>AKSI</th></tr></thead><tbody>
+ ${UPL.map(u=>{const st=USTAT[u.status];return `<tr data-u="${u.id}" style="cursor:pointer"><td><b style="color:var(--blue2)">${u.id}</b></td><td>${esc(u.per)}</td><td class="num">${fmt(u.n)}</td><td>${st>4?'Selesai':st+'. '+USTEP[st-1]}</td><td>${uBadge(u.status)}</td><td>${esc(u.by)}<br><small style="color:var(--mute)">${tmS(u.gen.t)}</small></td><td>${u.gen.sgnT?esc(u.gen.sgnBy)+'<br><small style="color:var(--mute)">'+tmS(u.gen.sgnT)+'</small>':'—'}</td><td>${u.up&&u.up.t?tmS(u.up.t):'—'}</td><td>${u.up&&u.up.sgnT?esc(u.up.sgnBy)+'<br><small style="color:var(--mute)">'+tmS(u.up.sgnT)+'</small>':'—'}</td><td>${u.ba?esc(u.ba.no):'—'}</td><td><button class="btn sm ${UWAIT[u.status]&&UWAIT[u.status][0]===roleKey?'pri':''}" data-o="${u.id}">${UWAIT[u.status]&&UWAIT[u.status][0]===roleKey?'Review':'Lihat detail'} →</button></td></tr>`}).join('')}
+ </tbody></table></div></div>`;
+ document.querySelectorAll('tr[data-u]').forEach(t=>t.onclick=()=>{uplOpen=t.dataset.u;uplStep=Math.min(4,USTAT[UPL.find(u=>u.id===uplOpen).status]);upg=1;vUpload()});
+ const nb=$('#uplNew');if(nb)nb.onclick=()=>{uplOpen=active?active.id:'new';uplStep=active?Math.min(4,USTAT[active.status]):1;upg=1;vUpload()};
 }
-
+function uplDetail(){
+ const u=uplOpen==='new'?null:UPL.find(x=>x.id===uplOpen),aml=roleKey==='aml',cur=u?USTAT[u.status]:1,W=u&&UWAIT[u.status],me=W&&W[0]===roleKey;
+ const all=uRows(),F=UFMTS(),fm=F.find(f=>f.key===ufmt)||F[0],rowsOf=f=>all.filter(({e,v})=>f.f(e,v));
+ $('#view').innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><button class="btn" id="uback">← Kembali</button><span style="font-size:13px;color:var(--mute)">Upload Watchlist / <b style="color:var(--ink)">${u?u.id:'Pengajuan baru'}</b></span></div>
+ <div class="card" style="margin-bottom:16px"><div class="ch"><div><h2 style="font-size:18px">Upload Watchlist · ${esc(u?u.per:PER)}</h2><p>${u?u.id+' · diajukan '+esc(u.by)+' · '+tmS(u.gen.t):'Belum diajukan'} · ${fmt(u?u.n:all.length)} baris</p></div><div class="sp"></div>${u?uBadge(u.status):''}</div>
+ <div class="stepper" style="margin:0">${USTEP.map((l,i)=>{const n=i+1,done=cur>n||(cur===5),on=n===uplStep;return `<div class="${done&&!on?'ok':on?'on':''}" data-s="${n}" style="cursor:${n<=Math.max(cur,1)?'pointer':'default'};${n>Math.min(cur,4)&&!on?'opacity:.55':''}"><b>${done?'✓':n}</b>${l}</div>`}).join('')}</div></div>
+ <div id="ustep"></div>`;
+ $('#uback').onclick=()=>{uplOpen=null;vUpload()};
+ document.querySelectorAll('.stepper [data-s]').forEach(d=>d.onclick=()=>{const n=+d.dataset.s;if(n<=Math.min(Math.max(cur,1),4)){uplStep=n;uplDetail()}});
+ const box=$('#ustep');
+ const apBar=(kind)=>me&&W[2]===kind?`<button class="btn dan" id="urj">Tolak</button><button class="btn pri" id="uap">Setujui sebagai ${W[0]==='aml_chk'?'Checker':'Signer'} AML</button>`:W&&W[2]===kind?`<span class="lock">${ic('lock')}Menunggu ${W[0]==='aml_chk'?'Checker':'Signer'} AML</span>`:'';
+ if(uplStep===1){
+  const P=25,R=rowsOf(fm),pages=Math.max(1,Math.ceil(R.length/P));if(upg>pages)upg=pages;
+  box.innerHTML=`<div class="card"><div class="ch"><div><h2>Data patching sesuai format</h2><p>Seluruh data Active · ${F.length} format · as-of ${dstr(today)}</p></div></div>
+   <div class="bar2"><div class="tabs" id="uft" style="flex-wrap:wrap">${F.map(f=>`<button data-f="${f.key}" class="${f===fm?'on':''}">${f.sys} · ${f.l} <small style="opacity:.7">${fmt(rowsOf(f).length)}</small></button>`).join('')}</div><div style="flex:1"></div><span style="font-size:12px;color:var(--mute)">${esc(uFname(fm))}</span></div>
+   <div class="tw"><table class="x"><thead><tr><th class="rn">#</th>${fm.cols.map((c,i)=>`<th style="text-transform:none">${esc(c)}<br><span style="font-weight:400;letter-spacing:0;color:var(--blue2)">← ${esc(fm.map[i])}</span></th>`).join('')}</tr></thead><tbody>${R.slice((upg-1)*P,upg*P).map(({e,v},i)=>{const raw=fm.row(e,v),cl=uClean(fm,raw);return `<tr><td class="rn">${(upg-1)*P+i+1}</td>${cl.map((x,j)=>String(raw[j]??'')!==x?`<td class="cw" title="Dibersihkan dari: ${esc(raw[j])}">${esc(x)}</td>`:`<td>${esc(x)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>
+   <div class="pg"><span>${fmt(R.length)} baris · hal ${upg}/${pages}</span><div class="pb"><button data-g="${upg-1}" ${upg===1?'disabled':''}>‹</button><button data-g="${upg+1}" ${upg===pages?'disabled':''}>›</button></div></div>
+   <div class="pg" style="border-top:1px solid var(--line);margin-top:12px"><span>${u&&u.gen.sgnT?'Disetujui Checker '+esc(u.gen.chkBy)+' ('+tmS(u.gen.chkT)+') · Signer '+esc(u.gen.sgnBy)+' ('+tmS(u.gen.sgnT)+')':u&&u.status==='Ditolak'?'<b style="color:var(--err)">Ditolak: '+esc(u.note||'')+'</b>':u&&u.gen.chkT?'Disetujui Checker '+esc(u.gen.chkBy)+' ('+tmS(u.gen.chkT)+')':''}</span><div class="pb">${!u&&aml?`<button class="btn pri" id="ugen">Ajukan Generate Patching</button>`:apBar('gen')}</div></div></div>`;
+  $('#uft').onclick=ev=>{const b=ev.target.closest('button');if(b){ufmt=b.dataset.f;upg=1;uplDetail()}};
+  box.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{upg=+b.dataset.g;uplDetail()});
+  const g=$('#ugen');if(g)g.onclick=()=>confirmDlg('Ajukan generate patching '+PER+'?',`${F.length} file (HUE 2 · IRIS 3) dari <b>${fmt(all.length)} baris</b> data Active. File dapat diunduh setelah disetujui Checker dan Signer AML.`,'Ajukan',()=>busy($('#ugen'),'Membentuk data…',900,()=>{const n={id:'UPL-2611'+(UPL.some(x=>x.id==='UPL-2611')?'-'+UPL.length:''),per:PER,n:all.length,by:ROLE.name,status:'Menunggu Checker',gen:{t:new Date()}};UPL.unshift(n);uplOpen=n.id;log('Upload Watchlist diajukan',n.id,'Generate patching · '+all.length+' baris','Pending');toast('✓ '+n.id+' diajukan ke Checker AML');uplDetail()}));
+ }
+ if(uplStep===2){
+  box.innerHTML=`<div class="card"><div class="ch"><div><h2>File patching</h2><p>HUE: CSV pemisah | · IRIS: Excel (.xlsx)</p></div><div class="sp"></div><button class="btn" id="udla">${ic('dl')}Unduh semua (${F.length})</button></div>
+   <div class="tw" style="max-height:none"><table class="x"><thead><tr><th>SISTEM</th><th>FORMAT</th><th>NAMA FILE</th><th>JUMLAH BARIS</th><th>AKSI</th></tr></thead><tbody>${F.map((f,i)=>`<tr><td><b>${f.sys}</b></td><td>${esc(f.l)}</td><td>${esc(uFname(f))}</td><td class="num">${fmt(rowsOf(f).length)}</td><td><button class="link" data-d="${i}">${ic('dl')} Unduh</button></td></tr>`).join('')}</tbody></table></div>
+   ${aml&&u.status==='File siap'?`<div class="mact" style="margin-top:14px"><button class="btn pri" id="unext">Lanjut ke Submit Bukti Upload →</button></div>`:''}</div>`;
+  const body=f=>[f.cols.join(f.sep),...rowsOf(f).map(({e,v})=>uClean(f,f.row(e,v)).join(f.sep))].join('\r\n'),aoa=f=>[f.cols,...rowsOf(f).map(({e,v})=>uClean(f,f.row(e,v)))];
+  const one=f=>f.ext==='xlsx'?dlXlsx(uFname(f),f.l,aoa(f)):(dlFile(uFname(f),body(f),'text/csv;charset=utf-8')?toast('✓ Mengunduh '+uFname(f)):showCsv(uFname(f),body(f)));
+  box.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>one(F[+b.dataset.d]));
+  $('#udla').onclick=()=>F.forEach((f,i)=>setTimeout(()=>one(f),i*350));
+  const nx=$('#unext');if(nx)nx.onclick=()=>{uplStep=3;uplDetail()};
+ }
+ if(uplStep===3){
+  const sysBox=(k,L)=>{const x=u.up&&u.up[k]||{};return `<div class="var" style="padding:14px"><div class="vh"><b style="color:var(--ink);font-size:14px">${L}</b></div>${aml&&u.status==='File siap'?`<div class="fgrid">
+    <div class="fld"><label>Waktu upload <i>*</i></label><input type="datetime-local" data-u="${k}.t" value="${esc((UPDRAFT[k]||{}).t||new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16))}"></div>
+    <div class="fld"><label>No. tiket / CR</label><input data-u="${k}.ticket" value="${esc((UPDRAFT[k]||{}).ticket||'')}" placeholder="mis. CR-2611-0421"></div>
+    <div class="fld"><label>Jumlah baris terupload <i>*</i></label><input type="number" data-u="${k}.rows" value="${esc((UPDRAFT[k]||{}).rows??u.n)}"></div>
+    <div class="fld"><label>Hasil <i>*</i></label><select data-u="${k}.res">${['Berhasil','Berhasil sebagian','Gagal'].map(o=>`<option ${(UPDRAFT[k]||{}).res===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
+    <div class="fld"><label>Bukti upload (screenshot) <i>*</i></label><label class="btn" style="justify-content:center">${ic('up')}${(UPDRAFT[k]||{}).img?'Ganti screenshot':'Lampirkan screenshot'}<input type="file" accept="image/*" data-img="${k}" hidden></label>${(UPDRAFT[k]||{}).img?`<img src="${UPDRAFT[k].img}" style="max-height:140px;border:1px solid var(--line);border-radius:8px;margin-top:6px;object-fit:contain">`:''}</div>`
+    :`<dl class="kv"><dt>Waktu upload</dt><dd>${tmS(x.t)}</dd><dt>No. tiket / CR</dt><dd>${esc(x.ticket||'—')}</dd><dt>Baris terupload</dt><dd>${x.rows!=null?fmt(+x.rows):'—'}</dd><dt>Hasil</dt><dd>${esc(x.res||'—')}</dd><dt>Bukti</dt><dd>${x.img?`<img src="${x.img}" style="max-height:140px;border:1px solid var(--line);border-radius:8px">`:'<span style="color:var(--mute)">Terlampir di sistem</span>'}</dd></dl>`}</div>`};
+  box.innerHTML=`<div class="card"><div class="ch"><div><h2>Bukti upload</h2><p>${u.up&&u.up.by?'Dicatat '+esc(u.up.by)+' · '+tmS(u.up.t):'Isi hasil upload ke HUE dan IRIS'}</p></div></div>
+   <div class="split">${sysBox('hue','HUE')}${sysBox('iris','IRIS')}</div>
+   ${u.note&&u.status==='File siap'?`<div class="alert e">${ic('warn')}<span><b>Dikembalikan</b>${esc(u.note)}</span></div>`:''}
+   <div class="pg" style="border-top:1px solid var(--line);margin-top:4px"><span>${u.up&&u.up.sgnT?'Diverifikasi Checker '+esc(u.up.chkBy)+' · Signer '+esc(u.up.sgnBy):u.up&&u.up.chkT?'Diverifikasi Checker '+esc(u.up.chkBy):''}</span><div class="pb">${aml&&u.status==='File siap'?`<button class="btn pri" id="usub">Submit bukti upload</button>`:apBar('up')}</div></div></div>`;
+  box.oninput=box.onchange=ev=>{const t=ev.target;if(t.dataset.u){const [k,f]=t.dataset.u.split('.');(UPDRAFT[k]=UPDRAFT[k]||{})[f]=t.value}
+   if(t.dataset.img&&t.files&&t.files[0]&&ev.type==='change'){const r=new FileReader();r.onload=()=>{(UPDRAFT[t.dataset.img]=UPDRAFT[t.dataset.img]||{}).img=r.result;uplDetail()};r.readAsDataURL(t.files[0])}};
+  const sb=$('#usub');if(sb)sb.onclick=()=>{box.querySelectorAll('[data-u]').forEach(t=>{const [k,f]=t.dataset.u.split('.');(UPDRAFT[k]=UPDRAFT[k]||{})[f]=t.value});
+   const miss=['hue','iris'].filter(k=>!UPDRAFT[k]||!UPDRAFT[k].t||UPDRAFT[k].rows===''||!UPDRAFT[k].img);if(miss.length)return toast('Lengkapi waktu, jumlah baris, dan screenshot bukti untuk '+miss.map(x=>x.toUpperCase()).join(' & '));
+   confirmDlg('Submit bukti upload?','Bukti upload HUE dan IRIS akan diverifikasi Checker dan Signer AML.','Submit',()=>{u.up={by:ROLE.name,t:new Date()};['hue','iris'].forEach(k=>{const d=UPDRAFT[k];u.up[k]={t:new Date(d.t),ticket:d.ticket,rows:+d.rows,res:d.res||'Berhasil',img:d.img}});u.status='Bukti menunggu Checker';u.note=null;UPDRAFT={};log('Bukti upload disubmit',u.id,'HUE '+u.up.hue.res+' · IRIS '+u.up.iris.res,'Pending');toast('✓ Bukti upload diajukan ke Checker AML');uplDetail()})};
+ }
+ if(uplStep===4){
+  if(u.status==='Selesai'&&u.ba&&!(aml&&false)){box.innerHTML=`<div class="card"><div class="ch"><div><h2>Berita Acara</h2><p>${esc(u.ba.no)} · dibuat ${esc(u.ba.by)} · ${tmS(u.ba.t)}</p></div><div class="sp"></div>${uBadge('Selesai')}</div><div class="alert i">${ic('ok')}<span><b>Proses upload ${esc(u.per)} selesai</b>Patching disetujui, bukti upload terverifikasi, dan Berita Acara telah dibentuk.</span></div>${aml?'<button class="btn" id="ubaagain">'+ic('file')+'Buka & unduh ulang BA</button>':''}</div>`;const a=$('#ubaagain');if(a)a.onclick=()=>{box.innerHTML='<div id="ub"></div>';baView()};return}
+  if(!aml){box.innerHTML=`<div class="card empty">${ic('lock')}<p>Berita Acara dibentuk oleh AML Admin.</p></div>`;return}
+  if(!BA||BA._u!==u.id){baDefaults();BA._u=u.id;const t=u.up&&u.up.hue&&u.up.hue.t;if(t)BA.tgl=isoD(t);BAIMG={};if(u.up&&u.up.hue&&u.up.hue.img)BAIMG.hue=u.up.hue.img;if(u.up&&u.up.iris&&u.up.iris.img)BAIMG.cml=u.up.iris.img}
+  box.innerHTML='<div id="ub"></div>';baView();
+ }
+ const ap=$('#uap');if(ap)ap.onclick=()=>{const nx=W[1],chk=W[0]==='aml_chk',sect=W[2];confirmDlg('Setujui '+(sect==='up'?'bukti upload ':'generate patching ')+u.id+'?',`Status: <b>${u.status} → ${nx}</b>.`,'Ya, setujui',()=>busy($('#uap'),'Memproses…',600,()=>{const o=u[sect];if(chk){o.chkBy=ROLE.name;o.chkT=new Date()}else{o.sgnBy=ROLE.name;o.sgnT=new Date()}const prev=u.status;u.status=nx;
+   log(sect==='up'?'Bukti upload disetujui':'Generate patching disetujui',u.id,(chk?'Checker':'Signer')+' AML','Berhasil',[['Status',prev,nx]]);toast('✓ '+u.id+' → '+nx);if(nx==='File siap')uplStep=2;if(nx==='Menunggu BA')uplStep=4;uplDetail()}))};
+ const rj=$('#urj');if(rj)rj.onclick=()=>{openModal(`<h2>Tolak ${u.id}</h2><div class="fld" style="margin-top:12px"><label>Alasan <i>*</i></label><textarea id="urr"></textarea></div><div class="mact"><button class="btn" data-x>Batal</button><button class="btn dan" id="urok">Tolak</button></div>`);$('#modal').querySelector('[data-x]').onclick=closeModal;
+  $('#urok').onclick=()=>{const v=$('#urr').value.trim();if(!v){$('#urr').closest('.fld').classList.add('bad');return}const prev=u.status,nx=W[2]==='up'?'File siap':'Ditolak';u.status=nx;u.note=v;if(W[2]==='up'){delete u.up}log(W[2]==='up'?'Bukti upload ditolak':'Generate patching ditolak',u.id,v,'Ditolak',[['Status',prev,nx]]);closeModal();toast(W[2]==='up'?'Bukti upload dikembalikan ke AML Admin':u.id+' ditolak');uplDetail()}};
+}
 const BA_DESC={'DTTOT & DPPSPM':'Daftar Terduga Teroris dan Organisasi Teroris (DTTOT) dan Daftar Pendanaan Proliferasi Senjata Pemusnah Massal (DPPSPM)','Informasi Teroris & Sanctions':'Informasi Teroris PPATK, Densus 88, dan Sanctions List',
  'Scammer':'Data dengan jenis Scammer (internal, regulator, PUPN, dan Tindak Pidana Siber)','Judol':'Daftar Judi Online internal maupun eksternal (BI, OJK, Polri, Kominfo, Kejaksaan, PPATK)',
  'Negative News':'Negative News yang bersumber dari inisiatif kantor pusat dan hasil analisa LTKM','Blokir':'Blokir yang bersumber dari pihak Regulator, Eksternal, dan Internal',
@@ -1060,7 +1089,7 @@ function baView(){
  pv();
  $('#bar').onclick=()=>{baDefaults();BAIMG={};baView()};
  $('#bag').onclick=()=>busy($('#bag'),'Menyiapkan dokumen…',900,()=>{const doc=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>${BACSS} body{font-family:Arial}</style></head><body><div class="ba">${baHTML(true)}</div></body></html>`;
-  const name='BA_Upload_Watchlist_'+(BA.tgl||'')+'.doc';const ok=dlFile(name,doc,'application/msword');PLOG.push({t:new Date(),type:'BA',per:'November 2026',n:CATS.reduce((a,c)=>a+SUBC[c].reduce((x,y)=>x+(TOT[y]||0)+(+BA.add[y]||0),0),0),by:ROLE.name,no:BA.no});log('Generate BA',BA.no,'','Berhasil');toast(ok?'✓ Mengunduh '+name:'Unduhan diblokir di tampilan ini');vUpload()});
+  const name='BA_Upload_Watchlist_'+(BA.tgl||'')+'.doc';const ok=dlFile(name,doc,'application/msword');PLOG.push({t:new Date(),type:'BA',per:'November 2026',n:CATS.reduce((a,c)=>a+SUBC[c].reduce((x,y)=>x+(TOT[y]||0)+(+BA.add[y]||0),0),0),by:ROLE.name,no:BA.no});log('Generate BA',BA.no,'','Berhasil');toast(ok?'✓ Mengunduh '+name:'Unduhan diblokir di tampilan ini');const u=UPL.find(x=>x.id===uplOpen);if(u&&u.status==='Menunggu BA'){u.status='Selesai';u.ba={no:BA.no,t:new Date(),by:ROLE.name};log('Upload Watchlist selesai',u.id,'BA '+BA.no,'Berhasil',[['Status','Menunggu BA','Selesai']])}vUpload()});
 }
 
 /* ================= AUDIT TRAIL ================= */
